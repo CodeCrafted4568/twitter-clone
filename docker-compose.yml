@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: twitterdb
+      POSTGRES_USER: twitter
+      POSTGRES_PASSWORD: twitter
+    ports: [ "5432:5432" ]
+    volumes: [ "pgdata:/var/lib/postgresql/data" ]
+  backend:
+    build: ./backend
+    depends_on: [ db ]
+    environment:
+      POSTGRES_DB: twitterdb
+      POSTGRES_USER: twitter
+      POSTGRES_PASSWORD: twitter
+      DB_HOST: db
+      DB_PORT: 5432
+      DJANGO_SECRET_KEY: dev-secret-change-me
+      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
+    ports: [ "8000:8000" ]
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+volumes:
+  pgdata:
