@@ -1,0 +1,235 @@
+.home-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 680px) minmax(280px, 360px);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+.home-topbar {
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, .35);
+    padding: 12px 16px;
+    font-weight: 800;
+    border-bottom: 1px solid #243340;
+    z-index: 1;
+}
+
+.home-main {
+    border-left: 1px solid #243340;
+    border-right: 1px solid #243340;
+    min-height: 100dvh;
+}
+
+/* composer */
+.composer {
+    padding: 12px 16px;
+    border-bottom: 1px solid #243340;
+}
+
+.composer textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 84px;
+    background: #0b141a;
+    color: #e6eef4;
+    border: 1px solid #243340;
+    border-radius: 12px;
+    padding: 12px 14px;
+    outline: none;
+}
+
+.composer textarea:focus {
+    border-color: #1d9bf0;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, .15);
+}
+
+.composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+}
+
+.tweet-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tweet {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #243340;
+}
+
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #182430;
+}
+
+.avatar.sm {
+    width: 36px;
+    height: 36px;
+}
+
+.tweet-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.tweet-head {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.tweet-text {
+    margin: 8px 0 10px;
+    white-space: pre-wrap;
+}
+
+.tweet-media img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid #243340;
+}
+
+.icon-btn {
+    background: none;
+    border: 0;
+    color: #9fb3c8;
+    cursor: pointer;
+}
+
+.home-right {
+    position: sticky;
+    top: 0;
+    height: fit-content;
+}
+
+.right-rail .widget {
+    background: #0b141a;
+    border: 1px solid #243340;
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 16px;
+}
+
+.right-rail .widget h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.people {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.people li {
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.people .who {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.mini {
+    border: 0;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 700;
+    background: #e6eef4;
+    color: #0f1419;
+}
+
+.mini.outline {
+    background: transparent;
+    color: #e6eef4;
+    border: 1px solid #e6eef4;
+}
+
+/* responsivo: 1 coluna no mobile */
+@media (max-width: 1023px) {
+    .home-layout {
+        grid-template-columns: 1fr;
+        max-width: 720px;
+    }
+
+    .home-right {
+        position: static;
+    }
+}
+
+/* Card do Perfil */
+.profile-widget {
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background .2s;
+}
+
+.profile-widget:hover {
+    background: #121a21;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar.lg {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #182430;
+}
+
+/* Avatar maior */
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Wrapper do avatar + input file */
+.profile-upload {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    /* espaço entre avatar e input */
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* Customização do input file */
+input[type="file"] {
+    font-size: 14px;
+    padding: 8px 12px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
