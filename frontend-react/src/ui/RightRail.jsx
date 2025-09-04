@@ -2,12 +2,15 @@ import { useEffect, useState } from "react"
 import api from "../services/api"
 import perfilIcon from "../assets/perfil.png"
 import ProfileModal from "../components/ProfileModal.jsx"
+import ProfileSearch from "../components/ProfileSearch.jsx";
 
 export default function RightRail() {
     const [me, setMe] = useState(null)
     const [following, setFollowing] = useState([])
     const [followers, setFollowers] = useState([])
     const [openProfile, setOpenProfile] = useState(false)
+    const [showFollowing, setShowFollowing] = useState(false);
+    const [showFollowers, setShowFollowers] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -24,6 +27,8 @@ export default function RightRail() {
 
     return (
         <div className="right-rail">
+            <ProfileSearch />
+
             <section
                 className="widget profile-widget"
                 onClick={() => setOpenProfile(true)}
@@ -36,21 +41,71 @@ export default function RightRail() {
                     />
                     <div className="who">
                         <strong>{me?.username ?? "Meu perfil"}</strong>
-                        <span className="muted">@{me?.username ?? "user"}</span>
+                        <span className="muted">{me?.username}</span>
                     </div>
                 </div>
             </section>
 
             {/* Seguindo */}
             <section className="widget">
-                <h3>Seguindo</h3>
-                {/* ... */}
+                <button
+                    className="toggle-head"
+                    onClick={() => setShowFollowing(v => !v)}
+                    type="button"
+                >
+                    <span>Seguindo</span>
+                    <span className="pill">{following.length}</span>
+                    <span className={`caret ${showFollowing ? "up" : ""}`} />
+                </button>
+
+                {showFollowing && (
+                    <ul className="people">
+                        {following.length === 0 ? (
+                            <li className="muted">Você ainda não segue ninguém</li>
+                        ) : (
+                            following.map(u => (
+                                <li key={u.id}>
+                                    <div className="avatar sm" />
+                                    <div className="who">
+                                        <strong>{u.username}</strong>
+                                        <span className="muted">@{u.username}</span>
+                                    </div>
+                                </li>
+                            ))
+                        )}
+                    </ul>
+                )}
             </section>
 
             {/* Seguidores */}
             <section className="widget">
-                <h3>Seguidores</h3>
-                {/* ... */}
+                <button
+                    className="toggle-head"
+                    onClick={() => setShowFollowers(v => !v)}
+                    type="button"
+                >
+                    <span>Seguidores</span>
+                    <span className="pill">{followers.length}</span>
+                    <span className={`caret ${showFollowers ? "up" : ""}`} />
+                </button>
+
+                {showFollowers && (
+                    <ul className="people">
+                        {followers.length === 0 ? (
+                            <li className="muted">Ninguém te segue ainda</li>
+                        ) : (
+                            followers.map(u => (
+                                <li key={u.id}>
+                                    <div className="avatar sm" />
+                                    <div className="who">
+                                        <strong>{u.username}</strong>
+                                        <span className="muted">@{u.username}</span>
+                                    </div>
+                                </li>
+                            ))
+                        )}
+                    </ul>
+                )}
             </section>
 
             {/* Modal de edição de perfil */}

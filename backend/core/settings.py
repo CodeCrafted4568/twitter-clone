@@ -58,7 +58,7 @@ DATABASES = {
         'USER': os.getenv('POSTGRES_USER','twitter'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD','twitter'),
         'HOST': os.getenv('DB_HOST','127.0.0.1'),
-        'PORT': os.getenv('DB_PORT','5432'),
+        'PORT': os.getenv('DB_PORT','5434'),
     }
 }
 
@@ -89,4 +89,11 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173','http://127.0.0.1:5173',
     'http://localhost:5174','http://127.0.0.1:5174',
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]

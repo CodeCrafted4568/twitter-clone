@@ -17,7 +17,7 @@ export default function Home() {
       setMe(meRes.data)
 
       // feed (recomenda-se paginação; aqui simples)
-      const twRes = await api.get("/api/tweets/?ordering=-created_at")
+      const twRes = await api.get("/api/feed/")
       setTweets(twRes.data.results ?? twRes.data)
     } finally {
       setLoading(false)
@@ -43,20 +43,28 @@ export default function Home() {
 
   return (
     <div className="home-layout">
-      {/* coluna esquerda */}
       <main className="home-main">
         <header className="home-topbar">Para você</header>
-        <Feed
-          me={me}
-          tweets={tweets}
-          loading={loading}
-          onPost={onPost}
-          onLike={onLike}
-          onUnlike={onUnlike}
-        />
+
+        {loading ? (
+          <p className="muted" style={{ textAlign: "center", marginTop: 20 }}>
+            Carregando...
+          </p>
+        ) : (
+          <>
+            <Feed
+              me={me}
+              tweets={tweets}
+              loading={loading}
+              onPost={onPost}
+              onLike={onLike}
+              onUnlike={onUnlike}
+            />
+          </>
+        )}
+
       </main>
 
-      {/* coluna direita */}
       <aside className="home-right">
         <RightRail />
       </aside>

@@ -233,3 +233,72 @@ input[type="file"] {
     align-items: center;
     justify-content: center;
 }
+
+.search-input {
+    width: 100%;
+    background: #0b141a;
+    color: #e6eef4;
+    border: 1px solid #243340;
+    border-radius: 12px;
+    padding: 10px 12px;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #1d9bf0;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, .15);
+}
+
+/* Botões Seguindo e Seguidores */
+.toggle-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+    background: transparent;
+    color: #e6eef4;
+    font-weight: 800;
+    border: 0;
+    padding: 6px 4px 4px;
+    cursor: pointer;
+}
+
+.toggle-head .pill {
+    background: #16202a;
+    border: 1px solid #243340;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.caret {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid #9fb3c8;
+    transform: translateY(1px);
+}
+
+.caret.up {
+    border-top: none;
+    border-bottom: 7px solid #9fb3c8;
+    transform: translateY(-1px);
+}
+
+.people li.muted {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #9fb3c8;
+    text-align: center;
+    width: 100%;
+    padding: 8px 0;
+}
+
+.home-main .muted {
+    color: #9fb3c8;
+    font-style: italic;
+}

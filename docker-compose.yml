@@ -6,15 +6,20 @@ services:
       POSTGRES_DB: twitterdb
       POSTGRES_USER: twitter
       POSTGRES_PASSWORD: twitter
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 15
 
   backend:
     build: ./backend
+    working_dir: /app
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       POSTGRES_DB: twitterdb
       POSTGRES_USER: twitter
@@ -22,16 +27,19 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DJANGO_SECRET_KEY: dev-secret-change-me
-      CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
     ports:
       - "8000:8000"
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
-    working_dir: /app
     volumes:
       - ./backend:/app
       - media:/app/media
+    command: >
+      sh -c "
+        until pg_isready -h db -p 5432 -U $POSTGRES_USER; do
+          echo 'Aguardando Postgres...'; sleep 1;
+        done &&
+        python manage.py migrate &&
+        python manage.py runserver 0.0.0.0:8000
+      "
 
 volumes:
   pgdata:

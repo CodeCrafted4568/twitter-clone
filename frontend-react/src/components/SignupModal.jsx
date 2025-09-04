@@ -38,7 +38,7 @@ export default function SignupModal({ open, onClose, onSuccess }) {
         setError("")
         try {
             setLoading(true)
-            await api.post("/api/auth/register/", { username, password })
+            await api.post("/api/register/", { username, password })
             const { data } = await api.post("/api/auth/token/", { username, password })
             localStorage.setItem("token", data.access)
             onSuccess?.()
