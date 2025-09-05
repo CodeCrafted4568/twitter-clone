@@ -12,11 +12,9 @@ export default function Home() {
   async function loadAll() {
     try {
       setLoading(true)
-      // usuário logado (se quiser exibir avatar/nome depois)
       const meRes = await api.get("/api/users/me/")
       setMe(meRes.data)
 
-      // feed (recomenda-se paginação; aqui simples)
       const twRes = await api.get("/api/feed/")
       setTweets(twRes.data.results ?? twRes.data)
     } finally {
@@ -26,7 +24,6 @@ export default function Home() {
 
   useEffect(() => { loadAll() }, [])
 
-  // callbacks do feed
   async function onPost(text) {
     if (!text.trim()) return
     const { data } = await api.post("/api/tweets/", { text })

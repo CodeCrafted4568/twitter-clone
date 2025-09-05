@@ -1,16 +1,59 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Tweet, Profile  # Tweet vem do seu models.py
+from .models import Profile, Tweet, Like, Comment
 
 User = get_user_model()
 
 
-class TweetSerializer(serializers.ModelSerializer):
+# =============================
+# Comentários
+# =============================
+class CommentSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
 
     class Meta:
+        model = Comment
+        fields = ["id", "user", "text", "created_at"]
+
+
+# =============================
+# Tweets
+# =============================
+class TweetSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    # ↙️ API expõe "text", mas grava em "content"
+    text = serializers.CharField(source="content")
+    likes_count = serializers.IntegerField(read_only=True)
+    comments_count = serializers.IntegerField(read_only=True)
+    liked = serializers.SerializerMethodField()
+
+    class Meta:
         model = Tweet
-        fields = ["id", "user", "text", "created_at", "likes_count"]
+        fields = [
+            "id",
+            "user",
+            "text",           # campo exposto no JSON
+            "created_at",
+            "likes_count",
+            "comments_count",
+            "liked",
+        ]
+
+    def get_liked(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or user.is_anonymous:
+            return False
+        return Like.objects.filter(user=user, tweet=obj).exists()
+
+
+# =============================
+# Usuários
+# =============================
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username"]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -25,12 +68,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data["username"],
             password=validated_data["password"],
         )
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "username"]
 
 
 class UserMeSerializer(serializers.ModelSerializer):
@@ -50,6 +87,7 @@ class UserMeSerializer(serializers.ModelSerializer):
         return None
 
     def update(self, instance, validated_data):
+        # dados aninhados do Profile
         profile_data = validated_data.pop("profile", {})
         username = validated_data.get("username")
 
@@ -62,8 +100,9 @@ class UserMeSerializer(serializers.ModelSerializer):
 
         instance.save()
 
+        # atualiza avatar no Profile
         if profile_data:
-            avatar = profile_data.get("avatar")
+            avatar = profile_data.get("avatar", None)
             profile = getattr(instance, "profile", None)
             if profile is None:
                 profile = Profile.objects.create(user=instance)

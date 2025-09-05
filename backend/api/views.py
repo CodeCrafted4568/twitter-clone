@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -6,17 +7,22 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import Tweet, Like, Follow
+from .models import Tweet, Like, Follow, Comment
 from .serializers import (
     TweetSerializer,
     UserSerializer,
     RegisterSerializer,
     UserMeSerializer,
+    CommentSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 
 User = get_user_model()
 
+
+# =============================
+# Feed (apenas de seguidos)
+# =============================
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def feed_view(request):
@@ -28,6 +34,9 @@ def feed_view(request):
     return Response(data)
 
 
+# =============================
+# Registro de usuários
+# =============================
 class RegisterView(APIView):
     """Cadastro simples (sem auth)."""
     authentication_classes = []
@@ -40,10 +49,22 @@ class RegisterView(APIView):
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
+# =============================
+# Tweets (CRUD, curtidas, comentários)
+# =============================
 class TweetViewSet(viewsets.ModelViewSet):
-    queryset = Tweet.objects.select_related("user").all()
-    serializer_class = TweetSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    serializer_class = TweetSerializer
+
+    def get_queryset(self):
+        return (
+            Tweet.objects.select_related("user")
+            .annotate(
+                likes_count=Count("like", distinct=True),
+                comments_count=Count("comments", distinct=True),
+            )
+            .order_by("-created_at")
+        )
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -58,19 +79,32 @@ class TweetViewSet(viewsets.ModelViewSet):
             return []
         return super().get_permissions()
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
         t = self.get_object()
-        Like.objects.get_or_create(user=request.user, tweet=t)
-        return Response({"status": "liked"})
-
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
-    def unlike(self, request, pk=None):
-        t = self.get_object()
+        if request.method == "POST":
+            Like.objects.get_or_create(user=request.user, tweet=t)
+            return Response({"status": "liked"})
         Like.objects.filter(user=request.user, tweet=t).delete()
         return Response({"status": "unliked"})
 
+    @action(detail=True, methods=["get", "post"], permission_classes=[IsAuthenticated])
+    def comments(self, request, pk=None):
+        t = self.get_object()
+        if request.method == "GET":
+            qs = t.comments.select_related("user").all()
+            return Response(CommentSerializer(qs, many=True).data)
+        ser = CommentSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        c = Comment.objects.create(
+            user=request.user, tweet=t, text=ser.validated_data["text"]
+        )
+        return Response(CommentSerializer(c).data, status=201)
 
+
+# =============================
+# Usuários (listar, follow/unfollow)
+# =============================
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """Lista e detalhe de usuários; follow/unfollow como actions."""
     queryset = User.objects.all()
@@ -91,6 +125,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"status": "unfollowed"})
 
 
+# =============================
+# Perfil do usuário logado
+# =============================
 class CurrentUserView(APIView):
     """
     /api/users/me/
@@ -119,6 +156,9 @@ class CurrentUserView(APIView):
         return self.put(request)
 
 
+# =============================
+# Listas de seguindo/seguidores
+# =============================
 class FollowingListView(APIView):
     permission_classes = [IsAuthenticated]
 

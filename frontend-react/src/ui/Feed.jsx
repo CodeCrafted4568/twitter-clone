@@ -4,13 +4,10 @@ import TweetCard from "./TweetCard";
 export default function Feed({ me, tweets, loading, onPost, onLike, onUnlike }) {
     return (
         <div>
-            {/* Campo para escrever tweet sempre visível se logado */}
             {me && <Composer me={me} onPost={onPost} />}
 
-            {/* Loading */}
             {loading && <div className="skeleton" style={{ marginTop: 12 }}>Carregando…</div>}
 
-            {/* Tweets */}
             {tweets.length > 0 ? (
                 <ul className="tweet-list">
                     {tweets.map((t) => (
