@@ -2,37 +2,47 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import api from "../services/api";
 import perfilIcon from "../assets/perfil.png";
-import "../styles/ProfileModal.css"; // ⟵ ADICIONE ISSO
+import "../styles/ProfileModal.css";
 
 export default function ProfileModal({ open, onClose }) {
     const [username, setUsername] = useState("");
+    const [initialUsername, setInitialUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [avatar, setAvatar] = useState(null); // file
+    const [avatar, setAvatar] = useState(null); // File
     const [preview, setPreview] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const firstRef = useRef(null);
 
+    // carrega dados atuais ao abrir
     useEffect(() => {
         if (!open) return;
         (async () => {
             try {
-                const { data } = await api.get("/api/users/me/");
+                const { data } = await api.get("users/me/");
                 setUsername(data.username || "");
-                setPreview(data.avatar_url || "");
-            } catch { }
+                setInitialUsername(data.username || "");
+                setPreview(data.avatar_url ? `${data.avatar_url}?t=${Date.now()}` : "");
+            } catch {
+                /* silencioso em dev */
+            }
         })();
     }, [open]);
 
+    // foco inicial + trava scroll
     useEffect(() => {
         if (open) setTimeout(() => firstRef.current?.focus(), 0);
         document.body.style.overflow = open ? "hidden" : "";
-        return () => { document.body.style.overflow = ""; };
+        return () => {
+            document.body.style.overflow = "";
+        };
     }, [open]);
 
+    // cleanup/volta ao default ao fechar
     useEffect(() => {
         if (!open) {
             setUsername("");
+            setInitialUsername("");
             setPassword("");
             setAvatar(null);
             setPreview("");
@@ -41,37 +51,81 @@ export default function ProfileModal({ open, onClose }) {
         }
     }, [open]);
 
+    // libera URL de preview quando trocar/fechar
+    useEffect(() => {
+        return () => {
+            if (preview && preview.startsWith("blob:")) URL.revokeObjectURL(preview);
+        };
+    }, [preview]);
+
     if (!open) return null;
 
     function handleFileChange(e) {
         const file = e.target.files?.[0];
-        if (file) {
-            setAvatar(file);
-            setPreview(URL.createObjectURL(file));
-        } else {
+        if (!file) {
             setAvatar(null);
+            return;
         }
+        // validaçãozinha básica (ajuste se quiser)
+        if (!file.type.startsWith("image/")) {
+            setError("Escolha uma imagem.");
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setError("Imagem até 2MB, por favor.");
+            return;
+        }
+        setError("");
+        setAvatar(file);
+        const url = URL.createObjectURL(file);
+        setPreview(url);
     }
+
+    const isDirty =
+        (username?.trim() && username.trim() !== initialUsername) ||
+        !!password ||
+        !!avatar;
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
+        if (!isDirty) return;
         try {
             setLoading(true);
             const fd = new FormData();
-            if (username?.trim()) fd.append("username", username.trim());
+            if (username?.trim() && username.trim() !== initialUsername)
+                fd.append("username", username.trim());
             if (password) fd.append("password", password);
             if (avatar) fd.append("avatar", avatar);
-            await api.put("/api/users/me/", fd, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+
+            // atualização parcial
+            await api.patch("users/me/", fd);
+
             onClose?.();
+            // simples e eficiente pra refletir avatar/nome novos
             window.location.reload();
         } catch (err) {
-            setError("Não foi possível atualizar perfil.");
+            const data = err?.response?.data;
+            const msg =
+                data?.detail ||
+                data?.username?.[0] ||
+                data?.password?.[0] ||
+                "Não foi possível atualizar o perfil.";
+            setError(msg);
         } finally {
             setLoading(false);
         }
+    }
+
+    function handleLogout(e) {
+        e.preventDefault();
+        localStorage.removeItem("token");
+        try {
+            delete api.defaults.headers.common.Authorization;
+        } catch { }
+        onClose?.();
+        const target = import.meta.env.VITE_LOGOUT_REDIRECT || "/";
+        window.location.assign(target);
     }
 
     const fileName = avatar?.name || "Nenhum arquivo escolhido";
@@ -80,22 +134,30 @@ export default function ProfileModal({ open, onClose }) {
         <div
             className="modal-overlay"
             role="presentation"
+            onKeyDown={(e) => {
+                if (e.key === "Escape") onClose?.();
+            }}
             onMouseDown={(e) => {
                 if (e.target.classList.contains("modal-overlay")) onClose?.();
             }}
         >
-            <div className="modal-card modal-light" role="dialog" aria-modal="true">
-                <button className="modal-close" onClick={onClose}>×</button>
+            <div
+                className="modal-card modal-light"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="profile-title"
+            >
+                <button className="modal-close" onClick={onClose}>
+                    ×
+                </button>
 
-                <h3 className="modal-title">Editar Perfil</h3>
+                <h3 id="profile-title" className="modal-title">
+                    Editar Perfil
+                </h3>
 
                 <form className="modal-form" onSubmit={handleSubmit}>
                     <div className="upload-row">
-                        <img
-                            src={preview || perfilIcon}
-                            alt="Avatar"
-                            className="avatar lg"
-                        />
+                        <img src={preview || perfilIcon} alt="Avatar" className="avatar lg" />
 
                         <div>
                             <input
@@ -108,7 +170,9 @@ export default function ProfileModal({ open, onClose }) {
                             <label htmlFor="profile-photo" className="file-label">
                                 <span className="file-label-text">Escolher arquivo</span>
                                 <span className="file-sep">•</span>
-                                <span className="file-name" title={fileName}>{fileName}</span>
+                                <span className="file-name" title={fileName}>
+                                    {fileName}
+                                </span>
                             </label>
                         </div>
                     </div>
@@ -129,12 +193,15 @@ export default function ProfileModal({ open, onClose }) {
 
                     {error && <p className="form-error">{error}</p>}
 
-                    <button
-                        className="modal-submit"
-                        disabled={loading || (!username && !password && !avatar)}
-                    >
+                    <button className="modal-submit" disabled={loading || !isDirty}>
                         {loading ? "Salvando..." : "Salvar alterações"}
                     </button>
+
+                    <div className="logout-row">
+                        <button type="button" className="link-logout" onClick={handleLogout}>
+                            Sair da conta
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>,

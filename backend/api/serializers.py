@@ -51,9 +51,22 @@ class TweetSerializer(serializers.ModelSerializer):
 # Usuários
 # =============================
 class UserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "username"]
+        fields = ["id", "username", "avatar_url"]
+
+    def get_avatar_url(self, obj):
+        request = self.context.get("request")
+        url = None
+        if hasattr(obj, "avatar") and getattr(obj, "avatar"):
+            url = obj.avatar.url
+        elif hasattr(obj, "profile") and getattr(obj.profile, "avatar", None):
+            url = obj.profile.avatar.url
+        if url and request:
+            return request.build_absolute_uri(url)
+        return url or ""
 
 
 class RegisterSerializer(serializers.ModelSerializer):

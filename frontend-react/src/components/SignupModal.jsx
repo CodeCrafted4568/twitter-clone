@@ -38,12 +38,17 @@ export default function SignupModal({ open, onClose, onSuccess }) {
         setError("")
         try {
             setLoading(true)
-            await api.post("/api/register/", { username, password })
-            const { data } = await api.post("/api/auth/token/", { username, password })
+            await api.post("register/", { username, password })
+            const { data } = await api.post("auth/token/", { username, password })
             localStorage.setItem("token", data.access)
             onSuccess?.()
         } catch (err) {
-            setError("Não foi possível criar a conta. Tente um usuário diferente.")
+            const data = err.response?.data
+            let msg = "Erro ao criar conta."
+            if (data?.detail) msg = data.detail
+            else if (data?.username) msg = data.username[0]
+            else if (data?.password) msg = data.password[0]
+            setError(msg)
         } finally {
             setLoading(false)
         }

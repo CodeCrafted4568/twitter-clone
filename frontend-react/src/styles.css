@@ -330,6 +330,26 @@ body {
     cursor: not-allowed;
 }
 
+.logout-row {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.link-logout {
+    background: none;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+    color: #ef4444;
+    opacity: .9;
+}
+
+.link-logout:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+
 /* Remove qualquer efeito no hover */
 .modal-submit:hover,
 .modal-submit:disabled:hover {

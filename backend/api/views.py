@@ -5,7 +5,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import Tweet, Like, Follow, Comment
 from .serializers import (
@@ -129,31 +129,50 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 # Perfil do usuário logado
 # =============================
 class CurrentUserView(APIView):
-    """
-    /api/users/me/
-    GET: retorna { id, username, avatar_url }
-    PUT/PATCH multipart: aceita username, password e avatar
-    """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
-        ser = UserMeSerializer(request.user, context={"request": request})
-        return Response(ser.data)
-
-    def put(self, request):
-        ser = UserMeSerializer(
-            request.user,
-            data=request.data,
-            context={"request": request},
-            partial=True,
-        )
-        ser.is_valid(raise_exception=True)
-        ser.save()
-        return Response(ser.data)
+        return Response(UserSerializer(request.user, context={"request": request}).data)
 
     def patch(self, request):
-        return self.put(request)
+        user = request.user
+        data = request.data
+        changed = False
+        errs = {}
+
+        # username
+        username = (data.get("username") or "").strip()
+        if username and username != user.username:
+            if User.objects.filter(username=username).exclude(pk=user.pk).exists():
+                errs["username"] = ["Já está em uso."]
+            else:
+                user.username = username
+                changed = True
+
+        # password
+        password = data.get("password")
+        if password:
+            user.set_password(password)
+            changed = True
+
+        # avatar (User.avatar ou Profile.avatar — cobre os dois casos)
+        avatar = data.get("avatar")
+        if avatar:
+            if hasattr(user, "avatar"):              # se o campo está no User
+                user.avatar = avatar
+                changed = True
+            elif hasattr(user, "profile") and hasattr(user.profile, "avatar"):  # se tem Profile
+                user.profile.avatar = avatar
+                user.profile.save()
+                changed = True
+
+        if errs:
+            return Response(errs, status=status.HTTP_400_BAD_REQUEST)
+        if changed:
+            user.save()
+
+        return Response(UserSerializer(user, context={"request": request}).data, status=status.HTTP_200_OK)
 
 
 # =============================

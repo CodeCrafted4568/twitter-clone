@@ -1,17 +1,16 @@
 import axios from "axios";
 
-// Se VITE_API_BASE não for definido, usa as serverless functions /api da Vercel
-const baseURL = import.meta.env.VITE_API_BASE || "/api";
+const baseURL = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api/";
+const api = axios.create({ baseURL });
 
-const api = axios.create({
-    baseURL,
-    headers: { "Content-Type": "application/json" }
-});
-
-// injeta token fake se existir
 api.interceptors.request.use((cfg) => {
     const token = localStorage.getItem("token");
     if (token) cfg.headers.Authorization = `Bearer ${token}`;
+    if (cfg.data instanceof FormData) {
+        delete cfg.headers["Content-Type"];
+    } else {
+        cfg.headers["Content-Type"] = "application/json";
+    }
     return cfg;
 });
 

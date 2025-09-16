@@ -29,6 +29,9 @@ services:
       DB_HOST: db
       DB_PORT: 5432
       DJANGO_SECRET_KEY: dev-secret-change-me
+      DJANGO_DEBUG: "true"
+      DJANGO_SECURE_SSL_REDIRECT: "false"
+      ALLOWED_HOSTS: "*"
     ports:
       - "8000:8000"
     volumes:
@@ -36,11 +39,27 @@ services:
       - media:/app/media
     command: >
       sh -c "
-        until pg_isready -h db -p 5432 -U $POSTGRES_USER; do
+        until pg_isready -h db -p 5432 -U $$POSTGRES_USER; do
           echo 'Aguardando Postgres...'; sleep 1;
         done &&
         python manage.py migrate &&
         python manage.py runserver 0.0.0.0:8000
+      "
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend-react:/app
+    environment:
+      VITE_API_BASE: "http://127.0.0.1:8000/api/"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    command: >
+      sh -c "
+        if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then npm ci; else npm i; fi &&
+        npm run dev -- --host 0.0.0.0 --port 5173
       "
 
 volumes:
