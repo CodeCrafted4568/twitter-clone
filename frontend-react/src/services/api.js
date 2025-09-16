@@ -1,9 +1,17 @@
-import axios from 'axios'
+import axios from "axios";
 
-const api = axios.create({ baseURL: 'http://localhost:8000' })
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token')
-    if (token) config.headers.Authorization = `Bearer ${token}`
-    return config
-})
-export default api
+const baseURL = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api/";
+const api = axios.create({ baseURL });
+
+api.interceptors.request.use((cfg) => {
+    const token = localStorage.getItem("token");
+    if (token) cfg.headers.Authorization = `Bearer ${token}`;
+    if (cfg.data instanceof FormData) {
+        delete cfg.headers["Content-Type"];
+    } else {
+        cfg.headers["Content-Type"] = "application/json";
+    }
+    return cfg;
+});
+
+export default api;
