@@ -44,6 +44,7 @@ export default function LoginModal({ open, onClose, onSuccess, onOpenSignup }) {
             // 👇 sem /api aqui!
             const { data } = await api.post("auth/token/", { username, password });
             localStorage.setItem("token", data.access);
+            localStorage.setItem("refresh", data.refresh);
             onSuccess?.();
         } catch (err) {
             const d = err.response?.data;

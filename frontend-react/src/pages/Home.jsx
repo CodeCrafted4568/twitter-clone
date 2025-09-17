@@ -1,41 +1,56 @@
-import { useEffect, useState } from "react"
-import api from "../services/api"
-import Feed from "../ui/Feed"
-import RightRail from "../ui/RightRail"
-import "./home.css"
+import { useEffect, useState, useCallback } from "react";
+import api from "../services/api";
+import Feed from "../ui/Feed";
+import RightRail from "../ui/RightRail";
+import "./home.css";
 
 export default function Home() {
-  const [me, setMe] = useState(null)
-  const [tweets, setTweets] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [me, setMe] = useState(null);
+  const [tweets, setTweets] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
-      setLoading(true)
-      const meRes = await api.get("/api/users/me/")
-      setMe(meRes.data)
-
-      const twRes = await api.get("/api/feed/")
-      setTweets(twRes.data.results ?? twRes.data)
+      setLoading(true);
+      // baseURL já é .../api/, então aqui é só o caminho relativo
+      const [{ data: meData }, { data: feedData }] = await Promise.all([
+        api.get("users/me/"),
+        api.get("feed/")
+      ]);
+      setMe(meData);
+      setTweets(feedData.results ?? feedData ?? []);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   async function onPost(text) {
-    if (!text.trim()) return
-    const { data } = await api.post("/api/tweets/", { text })
-    setTweets(t => [data, ...t])
+    const body = (text || "").trim();
+    if (!body) return;
+    const { data } = await api.post("tweets/", { text: body });
+    setTweets(t => [data, ...t]);
   }
+
   async function onLike(id) {
-    await api.post(`/api/tweets/${id}/like/`)
-    setTweets(t => t.map(x => x.id === id ? { ...x, likes_count: (x.likes_count || 0) + 1, liked: true } : x))
+    await api.post(`tweets/${id}/like/`);
+    setTweets(t =>
+      t.map(x => x.id === id
+        ? { ...x, likes_count: (x.likes_count || 0) + 1, liked: true }
+        : x
+      )
+    );
   }
+
   async function onUnlike(id) {
-    await api.delete(`/api/tweets/${id}/like/`)
-    setTweets(t => t.map(x => x.id === id ? { ...x, likes_count: Math.max((x.likes_count || 1) - 1, 0), liked: false } : x))
+    await api.delete(`tweets/${id}/like/`);
+    setTweets(t =>
+      t.map(x => x.id === id
+        ? { ...x, likes_count: Math.max((x.likes_count || 1) - 1, 0), liked: false }
+        : x
+      )
+    );
   }
 
   return (
@@ -48,23 +63,20 @@ export default function Home() {
             Carregando...
           </p>
         ) : (
-          <>
-            <Feed
-              me={me}
-              tweets={tweets}
-              loading={loading}
-              onPost={onPost}
-              onLike={onLike}
-              onUnlike={onUnlike}
-            />
-          </>
+          <Feed
+            me={me}
+            tweets={tweets}
+            loading={loading}
+            onPost={onPost}
+            onLike={onLike}
+            onUnlike={onUnlike}
+          />
         )}
-
       </main>
 
       <aside className="home-right">
         <RightRail />
       </aside>
     </div>
-  )
+  );
 }

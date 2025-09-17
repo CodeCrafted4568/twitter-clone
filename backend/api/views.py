@@ -1,18 +1,19 @@
 from django.db.models import Count
 from django.contrib.auth import get_user_model
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.filters import SearchFilter
 
 from .models import Tweet, Like, Follow, Comment
 from .serializers import (
     TweetSerializer,
     UserSerializer,
     RegisterSerializer,
-    UserMeSerializer,
+    UserSerializer,
     CommentSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
@@ -106,23 +107,52 @@ class TweetViewSet(viewsets.ModelViewSet):
 # Usuários (listar, follow/unfollow)
 # =============================
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """Lista e detalhe de usuários; follow/unfollow como actions."""
-    queryset = User.objects.all()
+    """
+    Lista/detalhe de usuários + follow/unfollow + listas (following/followers).
+    Suporta busca: GET /api/users/?search=<termo>
+    """
+    queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [SearchFilter]
+    search_fields = ["username"]  # /users/?search=tiago
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    # ---- follow/unfollow na MESMA rota ----
+    @action(detail=True, methods=["post", "delete"], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
         target = self.get_object()
-        if request.user == target:
-            return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
-        Follow.objects.get_or_create(follower=request.user, following=target)
-        return Response({"status": "following"})
+        if request.method == "POST":
+            if request.user == target:
+                return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
+            Follow.objects.get_or_create(follower=request.user, following=target)
+            return Response({"status": "following"}, status=status.HTTP_204_NO_CONTENT)
+        # DELETE
+        Follow.objects.filter(follower=request.user, following=target).delete()
+        return Response({"status": "unfollowed"}, status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    # ---- compatibilidade com clientes antigos (opcional) ----
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def unfollow(self, request, pk=None):
         target = self.get_object()
         Follow.objects.filter(follower=request.user, following=target).delete()
-        return Response({"status": "unfollowed"})
+        return Response({"status": "unfollowed"}, status=status.HTTP_204_NO_CONTENT)
+
+    # ---- listas: who I follow / who follows me ----
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def following(self, request):
+        ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
+        qs = User.objects.filter(id__in=list(ids)).order_by("username")
+        page = self.paginate_queryset(qs)
+        ser = UserSerializer(page or qs, many=True, context={"request": request})
+        return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
+    def followers(self, request):
+        ids = Follow.objects.filter(following=request.user).values_list("follower_id", flat=True)
+        qs = User.objects.filter(id__in=list(ids)).order_by("username")
+        page = self.paginate_queryset(qs)
+        ser = UserSerializer(page or qs, many=True, context={"request": request})
+        return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
 
 
 # =============================

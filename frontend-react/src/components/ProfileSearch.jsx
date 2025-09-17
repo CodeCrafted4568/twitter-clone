@@ -1,55 +1,107 @@
+// frontend-react/src/components/ProfileSearch.jsx
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import FollowButton from "./FollowButton";
 import perfilIcon from "../assets/perfil.png";
 
+// debounce simples
+function useDebounced(value, delay = 350) {
+    const [v, setV] = useState(value);
+    useEffect(() => {
+        const t = setTimeout(() => setV(value), delay);
+        return () => clearTimeout(t);
+    }, [value, delay]);
+    return v;
+}
+
 export default function ProfileSearch() {
     const [q, setQ] = useState("");
-    const [list, setList] = useState([]);
+    const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [me, setMe] = useState(null);
 
+    const qDeb = useDebounced(q);
+
+    // pega o usuário atual (pra não listar ele mesmo)
     useEffect(() => {
-        const t = setTimeout(async () => {
-            if (!q.trim()) { setList([]); return; }
-            setLoading(true);
+        (async () => {
             try {
-                const { data } = await api.get("/api/users/search/", { params: { q } });
-                setList(data);
-            } finally { setLoading(false); }
-        }, 300); // debounce
-        return () => clearTimeout(t);
-    }, [q]);
+                const { data } = await api.get("users/me/");
+                setMe(data);
+            } catch {
+                setMe(null);
+            }
+        })();
+    }, []);
+
+    // busca por usuários
+    useEffect(() => {
+        (async () => {
+            const term = qDeb.trim();
+            if (!term) {
+                setItems([]);
+                return;
+            }
+            try {
+                setLoading(true);
+                // DRF SearchFilter: ?search=<termo>
+                const { data } = await api.get("users/", { params: { search: term } });
+                const results = data.results ?? data ?? [];
+                // remove o próprio usuário e adiciona cache-buster no avatar
+                const normalized = results
+                    .filter(u => !me || u.id !== me.id)
+                    .map(u => ({
+                        ...u,
+                        avatar_url: u.avatar_url ? `${u.avatar_url}?t=${Date.now()}` : ""
+                    }));
+                setItems(normalized);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [qDeb, me]);
 
     return (
         <section className="widget">
             <h3>Buscar perfis</h3>
+
             <input
                 className="field"
                 placeholder="Procurar por @usuário"
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={e => setQ(e.target.value)}
                 style={{ width: "100%" }}
             />
 
-            {loading && <p style={{ opacity: .7, marginTop: 8 }}>carregando…</p>}
-            {!loading && list.length === 0 && q && (
-                <p style={{ opacity: .7, marginTop: 8 }}>Nenhum resultado</p>
+            {loading && q.trim() && (
+                <p className="muted" style={{ marginTop: 8 }}>Buscando…</p>
             )}
 
-            <ul className="people" style={{ marginTop: 10 }}>
-                {list.map(u => (
-                    <li key={u.id}>
-                        <img className="avatar sm" src={u.avatar_url || perfilIcon} alt="" />
-                        <div className="who">
-                            <strong>@{u.username}</strong>
-                            <span className="muted">
-                                {u.followers_count} seg · {u.following_count} seguindo
-                            </span>
-                        </div>
-                        <FollowButton userId={u.id} initialFollowing={u.is_following} />
-                    </li>
-                ))}
-            </ul>
+            {!loading && q.trim() && items.length === 0 && (
+                <p className="muted" style={{ marginTop: 8 }}>Nenhum resultado</p>
+            )}
+
+            {items.length > 0 && (
+                <ul className="people" style={{ marginTop: 10 }}>
+                    {items.map(u => (
+                        <li key={u.id}>
+                            <img
+                                className="avatar sm"
+                                src={u.avatar_url || perfilIcon}
+                                alt={u.username}
+                                loading="lazy"
+                            />
+                            <div className="who">
+                                <strong>@{u.username}</strong>
+                                <span className="muted">
+                                    {u.followers_count ?? 0} seg · {u.following_count ?? 0} seguindo
+                                </span>
+                            </div>
+                            <FollowButton userId={u.id} initialFollowing={u.is_following} />
+                        </li>
+                    ))}
+                </ul>
+            )}
         </section>
     );
 }
