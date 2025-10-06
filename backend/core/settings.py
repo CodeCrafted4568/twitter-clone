@@ -29,23 +29,23 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "corsheaders",
 
     # 3rd
+    "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
-    "corsheaders",
 
     # Local
     "api",
-    # WhiteNoise (dev helper para static sem collectstatic local)
+
+    # WhiteNoise helper p/ dev (opcional)
     "whitenoise.runserver_nostatic",
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",           # deve vir o mais alto possível
+    "corsheaders.middleware.CorsMiddleware",           # deve ser o mais alto possível
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",      # imediatamente após Security
+    "whitenoise.middleware.WhiteNoiseMiddleware",      # logo após Security
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -74,8 +74,6 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # ---------------------------------------------------------------------
 # Banco de Dados
-# - Local/Docker usa variáveis POSTGRES_* / DB_HOST / DB_PORT
-# - Produção usa DATABASE_URL (Render/Railway)
 # ---------------------------------------------------------------------
 DATABASES = {
     "default": {
@@ -84,7 +82,7 @@ DATABASES = {
         "USER": os.getenv("POSTGRES_USER", "twitter"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "twitter"),
         "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "5434"),   # ajuste aqui se necessário
+        "PORT": os.getenv("DB_PORT", "5434"),
     }
 }
 
@@ -125,37 +123,36 @@ SIMPLE_JWT = {
 # ---------------------------------------------------------------------
 # CORS / CSRF (Vercel + Frontend)
 # ---------------------------------------------------------------------
-FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()  # opcional p/ injetar via env (https://seu-front.vercel.app)
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
     "https://twitter-clone-beta-sandy.vercel.app",
-] + ([FRONTEND_URL] if FRONTEND_URL else [])
+]
+if FRONTEND_URL:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
-# permite todos subdomínios vercel.app (pré-visualizações)
+# libera previews da Vercel (subdomínios *.vercel.app)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
 ]
 
-CORS_ALLOW_CREDENTIALS = True
+# Você usa JWT via Authorization, então não precisa de credenciais (cookies) via CORS.
+CORS_ALLOW_CREDENTIALS = False
 
+# CSRF só é necessário se usar sessões/cookies; para JWT não faz diferença.
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-] + ([FRONTEND_URL] if FRONTEND_URL else []) + [
-    "https://*.vercel.app",
+    "https://twitter-clone-beta-sandy.vercel.app",
 ]
+if FRONTEND_URL and FRONTEND_URL.startswith("https://"):
+    CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
 
 # ---------------------------------------------------------------------
 # Segurança extra quando DEBUG=False
 # ---------------------------------------------------------------------
 if not DEBUG:
-    # necessário quando está atrás de proxy (Render/Heroku)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    # redireciona para https se variável setada (evita quebrar em dev)
     SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "True").lower() == "true"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
