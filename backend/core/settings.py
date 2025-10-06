@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
 
     # 3rd
     "rest_framework",
@@ -131,6 +132,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
+    "https://twitter-clone-beta-sandy.vercel.app",
 ] + ([FRONTEND_URL] if FRONTEND_URL else [])
 
 # permite todos subdomínios vercel.app (pré-visualizações)
