@@ -43,7 +43,7 @@ export default function LoginModal({ open, onClose, onSuccess, onOpenSignup }) {
         try {
             setLoading(true);
             // POST em /api/token/
-            const { data } = await api.post("token/", { username, password });
+            const { data } = await api.post("auth/token/", { username, password });
             localStorage.setItem("token", data.access);
             localStorage.setItem("refresh", data.refresh);
             onSuccess?.();

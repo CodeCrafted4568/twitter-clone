@@ -1,3 +1,4 @@
+// src/services/api.js
 import axios from "axios";
 
 /** Garante que a base termine com "/api/" */
@@ -6,9 +7,8 @@ function normalizeApiBase(raw) {
     if (!raw || typeof raw !== "string") return fallback;
     const cleaned = raw.trim().replace(/\/+$/, "");
     if (!cleaned) return fallback;
-    // se já terminou com /api inclui a barra final
+    // se user colocou já com /api, garante a barra final
     if (cleaned.endsWith("/api")) return cleaned + "/";
-    // caso contrário adiciona /api/
     return cleaned + "/api/";
 }
 
@@ -18,17 +18,14 @@ export const API_BASE = baseURL;
 const api = axios.create({
     baseURL,
     headers: { Accept: "application/json" },
-    // withCredentials: true, // use se você usar cookies/sessão
+    // withCredentials: false (JWT via header, não cookies)
 });
 
-// adiciona Authorization automaticamente e Content-Type correto
 api.interceptors.request.use((cfg) => {
     const access = localStorage.getItem("token");
     cfg.headers = cfg.headers ?? {};
     if (access) cfg.headers.Authorization = `Bearer ${access}`;
-
     if (cfg.data instanceof FormData) {
-        // deixa o browser definir o boundary
         delete cfg.headers["Content-Type"];
     } else {
         cfg.headers["Content-Type"] = "application/json";
@@ -36,7 +33,6 @@ api.interceptors.request.use((cfg) => {
     return cfg;
 });
 
-// refresh automático de token quando 401
 let refreshing = null;
 
 api.interceptors.response.use(
@@ -44,8 +40,6 @@ api.interceptors.response.use(
     async (err) => {
         const status = err?.response?.status;
         const original = err?.config || {};
-
-        // não é 401 ou já tentamos retry -> rejeita
         if (status !== 401 || original._retry) return Promise.reject(err);
 
         const refresh = localStorage.getItem("refresh");
@@ -56,8 +50,8 @@ api.interceptors.response.use(
 
         try {
             if (!refreshing) {
-                // NOTE: rota de refresh é /api/auth/token/refresh/ (coerente com backend)
                 refreshing = api
+                    // observe: caminho RELATIVO sem leading slash
                     .post("auth/token/refresh/", { refresh })
                     .then(({ data }) => {
                         const newAccess = data?.access;
@@ -72,7 +66,6 @@ api.interceptors.response.use(
             original._retry = true;
             original.headers = original.headers ?? {};
             original.headers.Authorization = `Bearer ${newAccess}`;
-            // re-tenta a requisição original
             return api(original);
         } catch {
             logoutAndRedirect();
