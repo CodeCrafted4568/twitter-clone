@@ -9,7 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+
+# ALLOWED_HOSTS: passe "host1,host2" via env ALLOWED_HOSTS ou deixe "*" em dev
+_allowed = os.getenv("ALLOWED_HOSTS", "*")
+ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
 
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
@@ -30,7 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # 3rd
+    # 3rd party
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
@@ -74,6 +77,8 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # ---------------------------------------------------------------------
 # Banco de Dados
+# - Se DATABASE_URL estiver definido (p.ex. Render), usa ele
+# - Caso contrário usa variáveis separadas (bom para docker local)
 # ---------------------------------------------------------------------
 DATABASES = {
     "default": {
@@ -86,6 +91,7 @@ DATABASES = {
     }
 }
 
+# Se existir DATABASE_URL (p.ex. Render/Postgres), sobrescreve
 if os.getenv("DATABASE_URL"):
     import dj_database_url
     DATABASES = {
@@ -95,7 +101,7 @@ if os.getenv("DATABASE_URL"):
 # ---------------------------------------------------------------------
 # Static & Media (WhiteNoise)
 # ---------------------------------------------------------------------
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
@@ -121,38 +127,84 @@ SIMPLE_JWT = {
 }
 
 # ---------------------------------------------------------------------
-# CORS / CSRF (Vercel + Frontend)
+# CORS / CSRF (Front em Vercel + backend no Render ou local)
 # ---------------------------------------------------------------------
-FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()  # opcional p/ injetar via env (https://seu-front.vercel.app)
+# URL do frontend (adicione essa variável no Vercel: FRONTEND_URL=https://seu-front.vercel.app)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").strip()
 
+# Origins permitidas (dev + vercel + FRONTEND_URL)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    # domínio de produção do front (exemplo Vercel)
     "https://twitter-clone-beta-sandy.vercel.app",
 ]
 if FRONTEND_URL:
     CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
-# libera previews da Vercel (subdomínios *.vercel.app)
+# Permite previews vercel.app (subdomínios)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
 ]
 
-# Você usa JWT via Authorization, então não precisa de credenciais (cookies) via CORS.
+# Como usamos JWT via Authorization header, normalmente não precisamos de cookies
 CORS_ALLOW_CREDENTIALS = False
 
-# CSRF só é necessário se usar sessões/cookies; para JWT não faz diferença.
+# CSRF trusted (necessário apenas se usar cookies/session)
 CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "https://twitter-clone-beta-sandy.vercel.app",
 ]
 if FRONTEND_URL and FRONTEND_URL.startswith("https://"):
     CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
+# também permitir subdomínios Vercel
+CSRF_TRUSTED_ORIGINS += ["https://*.vercel.app"]
 
 # ---------------------------------------------------------------------
-# Segurança extra quando DEBUG=False
+# Segurança extra quando DEBUG=False (produção)
 # ---------------------------------------------------------------------
 if not DEBUG:
+    # necessário quando o app está atrás de um proxy (Render, etc)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # redireciona para https (configurável)
     SECURE_SSL_REDIRECT = os.getenv("DJANGO_SECURE_SSL_REDIRECT", "True").lower() == "true"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # HSTS
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", 63072000))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# ---------------------------------------------------------------------
+# Logging mínimo (útil para ver erros no Render)
+# ---------------------------------------------------------------------
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+    },
+}
+
+# ---------------------------------------------------------------------
+# Outras configurações (adapte se precisar)
+# ---------------------------------------------------------------------
+# Timeouts, email, etc — preencher conforme necessário por env vars
+
+# Exemplo: se você expuser alguma URL de logout para o front
+LOGOUT_REDIRECT_URL = os.getenv("VITE_LOGOUT_REDIRECT", "/")
+
+# ---------------------------------------------------------------------
+# Importe variáveis sensíveis adicionais do ambiente se precisar:
+# ---------------------------------------------------------------------
+# Exemplo:
+# EMAIL_HOST = os.getenv("EMAIL_HOST")
+# ...
+

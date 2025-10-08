@@ -17,6 +17,7 @@ router.register(r"users", UserViewSet, basename="user")
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
+    # endpoints de token ficam em /api/auth/...
     path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
@@ -26,6 +27,6 @@ urlpatterns = [
     path("users/followers/", FollowersListView.as_view(), name="user-followers"),
 
     path("feed/", feed_view, name="feed"),
-    
+
     path("", include(router.urls)),
 ]
