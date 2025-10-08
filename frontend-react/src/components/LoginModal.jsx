@@ -1,3 +1,4 @@
+// src/components/LoginModal.jsx
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import api from "../services/api";
@@ -41,14 +42,13 @@ export default function LoginModal({ open, onClose, onSuccess, onOpenSignup }) {
         if (!username || !password) return;
         try {
             setLoading(true);
-            // 👇 sem /api aqui!
-            const { data } = await api.post("auth/token/", { username, password });
+            // POST em /api/token/
+            const { data } = await api.post("token/", { username, password });
             localStorage.setItem("token", data.access);
             localStorage.setItem("refresh", data.refresh);
             onSuccess?.();
         } catch (err) {
             const d = err.response?.data;
-            // mostra mensagem real quando vier do backend
             setError(d?.detail || "Usuário ou senha inválidos.");
         } finally {
             setLoading(false);
@@ -56,14 +56,10 @@ export default function LoginModal({ open, onClose, onSuccess, onOpenSignup }) {
     }
 
     return createPortal(
-        <div
-            className="modal-overlay"
-            role="presentation"
-            onMouseDown={(e) => { if (e.target.classList.contains("modal-overlay")) handleClose(); }}
-        >
+        <div className="modal-overlay" role="presentation"
+            onMouseDown={(e) => { if (e.target.classList.contains("modal-overlay")) handleClose(); }}>
             <div className="modal-card modal-light" role="dialog" aria-modal="true" aria-labelledby="login-title">
                 <button type="button" className="modal-close" aria-label="Fechar" onClick={handleClose}>×</button>
-
                 <div className="modal-header"><img src={x} alt="X" className="modal-logo" /></div>
                 <h3 id="login-title" className="modal-title">Entrar no X</h3>
 
@@ -71,7 +67,6 @@ export default function LoginModal({ open, onClose, onSuccess, onOpenSignup }) {
                     <input ref={firstRef} placeholder="Usuário" value={username} onChange={e => setUsername(e.target.value)} />
                     <input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} />
                     {error && <p className="form-error">{error}</p>}
-
                     <button className="btn btn-primary modal-submit" disabled={loading || !username || !password}>
                         {loading ? "Entrando..." : "Avançar"}
                     </button>

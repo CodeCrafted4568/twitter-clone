@@ -50,7 +50,7 @@ api.interceptors.response.use(
         try {
             if (!refreshing) {
                 refreshing = api
-                    .post("token/refresh/", { refresh }) // <<< caminho correto
+                    .post("token/refresh/", { refresh }) // /api/token/refresh/
                     .then(({ data }) => {
                         const newAccess = data?.access;
                         if (!newAccess) throw new Error("Refresh sem access token");
