@@ -9,19 +9,19 @@ export default function FollowButton({ userId, initialFollowing, onUpdate }) {
         if (loading) return;
         setLoading(true);
         const next = !following;
-        setFollowing(next);
+        setFollowing(next); // atualização otimista
 
         try {
-            const response = next
-                ? await api.post(`api/follow/${userId}/`)
-                : await api.delete(`api/follow/${userId}/`);
-
-            // Atualiza contadores de seguidores e seguindo no pai (ProfileSearch)
-            if (response.data && onUpdate) {
-                onUpdate(userId, response.data);
+            if (next) {
+                const { data } = await api.post(`follow/${userId}/`);
+                if (onUpdate) onUpdate(userId, data);
+            } else {
+                const { data } = await api.delete(`follow/${userId}/`);
+                if (onUpdate) onUpdate(userId, data);
             }
-        } catch {
-            setFollowing(!next);
+        } catch (err) {
+            console.error("Erro ao seguir:", err);
+            setFollowing(!next); // rollback se der erro
         } finally {
             setLoading(false);
         }
