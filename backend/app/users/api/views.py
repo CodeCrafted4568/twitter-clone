@@ -30,9 +30,9 @@ class FollowView(views.APIView):
         if target == request.user:
             return Response({"detail": "Não é possível seguir a si mesmo."}, status=400)
         Follow.objects.get_or_create(follower=request.user, following=target)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"is_following": True})
 
     def delete(self, request, user_id):
         target = generics.get_object_or_404(User, id=user_id)
         Follow.objects.filter(follower=request.user, following=target).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"is_following": False})

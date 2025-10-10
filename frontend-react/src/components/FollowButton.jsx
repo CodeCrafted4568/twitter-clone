@@ -8,17 +8,29 @@ export default function FollowButton({ userId, initialFollowing }) {
     async function toggle() {
         if (loading) return;
         setLoading(true);
-        const next = !following;
-        setFollowing(next); // otimista
 
         try {
-            if (next) {
-                await api.post(`/api/follow/${userId}/`);
+            let response;
+
+            if (!following) {
+                // Seguir
+                response = await api.post(`follow/${userId}/`);
             } else {
-                await api.delete(`/api/follow/${userId}/`);
+                // Deixar de seguir
+                response = await api.delete(`follow/${userId}/`);
             }
-        } catch {
-            setFollowing(!next); // rollback
+
+            // Se o backend retornar { is_following: true/false }, usamos esse valor
+            if (response?.data?.is_following !== undefined) {
+                setFollowing(Boolean(response.data.is_following));
+            } else {
+                // Caso ainda retorne 204 sem corpo, fazemos o toggle otimista
+                setFollowing((prev) => !prev);
+            }
+        } catch (err) {
+            console.error("Erro ao seguir/deixar de seguir:", err);
+            // rollback otimista
+            setFollowing((prev) => !prev);
         } finally {
             setLoading(false);
         }
@@ -30,7 +42,11 @@ export default function FollowButton({ userId, initialFollowing }) {
             onClick={toggle}
             disabled={loading}
         >
-            {following ? "Seguindo" : "Seguir"}
+            {loading
+                ? "Carregando..."
+                : following
+                    ? "Seguindo"
+                    : "Seguir"}
         </button>
     );
 }
