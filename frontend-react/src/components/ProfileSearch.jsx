@@ -1,4 +1,3 @@
-// frontend-react/src/components/ProfileSearch.jsx
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import FollowButton from "./FollowButton";
@@ -44,15 +43,13 @@ export default function ProfileSearch() {
             }
             try {
                 setLoading(true);
-                // DRF SearchFilter: ?search=<termo>
                 const { data } = await api.get("users/", { params: { search: term } });
                 const results = data.results ?? data ?? [];
-                // remove o próprio usuário e adiciona cache-buster no avatar
                 const normalized = results
-                    .filter(u => !me || u.id !== me.id)
-                    .map(u => ({
+                    .filter((u) => !me || u.id !== me.id)
+                    .map((u) => ({
                         ...u,
-                        avatar_url: u.avatar_url ? `${u.avatar_url}?t=${Date.now()}` : ""
+                        avatar_url: u.avatar_url ? `${u.avatar_url}?t=${Date.now()}` : "",
                     }));
                 setItems(normalized);
             } finally {
@@ -60,6 +57,22 @@ export default function ProfileSearch() {
             }
         })();
     }, [qDeb, me]);
+
+    // Atualiza dados do usuário após seguir/deixar de seguir
+    function handleUpdate(userId, data) {
+        setItems((prev) =>
+            prev.map((u) =>
+                u.id === userId
+                    ? {
+                        ...u,
+                        followers_count: data.followers_count,
+                        following_count: data.following_count,
+                        is_following: data.is_following,
+                    }
+                    : u
+            )
+        );
+    }
 
     return (
         <section className="widget">
@@ -69,21 +82,25 @@ export default function ProfileSearch() {
                 className="field"
                 placeholder="Procurar por @usuário"
                 value={q}
-                onChange={e => setQ(e.target.value)}
+                onChange={(e) => setQ(e.target.value)}
                 style={{ width: "100%" }}
             />
 
             {loading && q.trim() && (
-                <p className="muted" style={{ marginTop: 8 }}>Buscando…</p>
+                <p className="muted" style={{ marginTop: 8 }}>
+                    Buscando…
+                </p>
             )}
 
             {!loading && q.trim() && items.length === 0 && (
-                <p className="muted" style={{ marginTop: 8 }}>Nenhum resultado</p>
+                <p className="muted" style={{ marginTop: 8 }}>
+                    Nenhum resultado
+                </p>
             )}
 
             {items.length > 0 && (
                 <ul className="people" style={{ marginTop: 10 }}>
-                    {items.map(u => (
+                    {items.map((u) => (
                         <li key={u.id}>
                             <img
                                 className="avatar sm"
@@ -97,7 +114,11 @@ export default function ProfileSearch() {
                                     {u.followers_count ?? 0} seg · {u.following_count ?? 0} seguindo
                                 </span>
                             </div>
-                            <FollowButton userId={u.id} initialFollowing={u.is_following} />
+                            <FollowButton
+                                userId={u.id}
+                                initialFollowing={u.is_following}
+                                onUpdate={handleUpdate}
+                            />
                         </li>
                     ))}
                 </ul>

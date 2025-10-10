@@ -1,36 +1,27 @@
 import { useState } from "react";
 import api from "../services/api";
 
-export default function FollowButton({ userId, initialFollowing }) {
+export default function FollowButton({ userId, initialFollowing, onUpdate }) {
     const [following, setFollowing] = useState(Boolean(initialFollowing));
     const [loading, setLoading] = useState(false);
 
     async function toggle() {
         if (loading) return;
         setLoading(true);
+        const next = !following;
+        setFollowing(next);
 
         try {
-            let response;
+            const response = next
+                ? await api.post(`api/follow/${userId}/`)
+                : await api.delete(`api/follow/${userId}/`);
 
-            if (!following) {
-                // Seguir
-                response = await api.post(`follow/${userId}/`);
-            } else {
-                // Deixar de seguir
-                response = await api.delete(`follow/${userId}/`);
+            // Atualiza contadores de seguidores e seguindo no pai (ProfileSearch)
+            if (response.data && onUpdate) {
+                onUpdate(userId, response.data);
             }
-
-            // Se o backend retornar { is_following: true/false }, usamos esse valor
-            if (response?.data?.is_following !== undefined) {
-                setFollowing(Boolean(response.data.is_following));
-            } else {
-                // Caso ainda retorne 204 sem corpo, fazemos o toggle otimista
-                setFollowing((prev) => !prev);
-            }
-        } catch (err) {
-            console.error("Erro ao seguir/deixar de seguir:", err);
-            // rollback otimista
-            setFollowing((prev) => !prev);
+        } catch {
+            setFollowing(!next);
         } finally {
             setLoading(false);
         }
@@ -42,11 +33,7 @@ export default function FollowButton({ userId, initialFollowing }) {
             onClick={toggle}
             disabled={loading}
         >
-            {loading
-                ? "Carregando..."
-                : following
-                    ? "Seguindo"
-                    : "Seguir"}
+            {following ? "Seguindo" : "Seguir"}
         </button>
     );
 }
