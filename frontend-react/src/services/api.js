@@ -18,7 +18,6 @@ export const API_BASE = baseURL;
 const api = axios.create({
     baseURL,
     headers: { Accept: "application/json" },
-    // withCredentials: false (JWT via header, não cookies)
 });
 
 api.interceptors.request.use((cfg) => {
@@ -51,7 +50,6 @@ api.interceptors.response.use(
         try {
             if (!refreshing) {
                 refreshing = api
-                    // observe: caminho RELATIVO sem leading slash
                     .post("auth/token/refresh/", { refresh })
                     .then(({ data }) => {
                         const newAccess = data?.access;

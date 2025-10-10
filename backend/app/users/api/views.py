@@ -1,76 +1,66 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Exists, OuterRef
-from rest_framework import permissions, status, generics, views
+from django.shortcuts import get_object_or_404
+from rest_framework import status, generics
 from rest_framework.response import Response
-from .models import Follow
-from .serializers import UserMiniSerializer
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .serializers import UserSerializer
 
 User = get_user_model()
 
 
 class UserSearchView(generics.ListAPIView):
-    serializer_class = UserMiniSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    Endpoint para buscar usuários pelo nome de usuário.
+    Exemplo: /api/users/search/?q=tiago
+    """
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        q = self.request.query_params.get("q", "").strip()
-
-        # Anota contadores e se o usuário logado já segue cada um
-        qs = (
-            User.objects.all()
-            .annotate(
-                followers_count=Count("followers", distinct=True),
-                following_count=Count("following", distinct=True),
-                is_following=Exists(
-                    Follow.objects.filter(
-                        follower=self.request.user,
-                        following=OuterRef("pk"),
-                    )
-                ),
-            )
-        )
-
-        if q:
-            qs = qs.filter(username__icontains=q)
-
-        # Evita listar o próprio usuário
-        return qs.exclude(id=self.request.user.id)[:20]
+        query = self.request.query_params.get("q", "")
+        if query:
+            return User.objects.filter(username__icontains=query)
+        return User.objects.none()
 
 
-class FollowView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class FollowView(APIView):
+    """
+    Endpoint para seguir ou deixar de seguir um usuário.
+    POST /api/follow/<int:user_id>/
+    """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, user_id):
-        target = generics.get_object_or_404(User, id=user_id)
-        if target == request.user:
-            return Response({"detail": "Não é possível seguir a si mesmo."}, status=400)
+        target_user = get_object_or_404(User, pk=user_id)
+        user = request.user
 
-        Follow.objects.get_or_create(follower=request.user, following=target)
+        if target_user == user:
+            return Response(
+                {"detail": "Você não pode seguir a si mesmo."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # Recalcula dados atualizados
-        followers_count = Follow.objects.filter(following=target).count()
-        following_count = Follow.objects.filter(follower=target).count()
+        # alterna seguir/deixar de seguir
+        if target_user.followers.filter(id=user.id).exists():
+            target_user.followers.remove(user)
+            following = False
+            message = "Deixou de seguir."
+        else:
+            target_user.followers.add(user)
+            following = True
+            message = "Agora está seguindo."
+
+        # opcional: atualiza contadores
+        target_user.save()
+        user.save()
+
         return Response(
             {
-                "followers_count": followers_count,
-                "following_count": following_count,
-                "is_following": True,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-    def delete(self, request, user_id):
-        target = generics.get_object_or_404(User, id=user_id)
-        Follow.objects.filter(follower=request.user, following=target).delete()
-
-        # Recalcula dados atualizados
-        followers_count = Follow.objects.filter(following=target).count()
-        following_count = Follow.objects.filter(follower=target).count()
-        return Response(
-            {
-                "followers_count": followers_count,
-                "following_count": following_count,
-                "is_following": False,
+                "detail": message,
+                "following": following,
+                "followers_count": target_user.followers.count(),
+                "following_count": user.following.count(),
             },
             status=status.HTTP_200_OK,
         )
