@@ -39,7 +39,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
 
     # Local
-    "api",
+    "app.api",
+    "app.users.api",
 
     # WhiteNoise helper p/ dev (opcional)
     "whitenoise.runserver_nostatic",
