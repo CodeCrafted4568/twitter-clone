@@ -5,10 +5,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # inclui todo o api/ (que já contém auth/token/ etc)
-    path("api/", include("app.api.urls")),
+    path("api/", include("api.urls")),           
+    path("api/", include("users.api.urls")),     
 ]
 
-# servir uploads no dev
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
