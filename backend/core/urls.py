@@ -7,6 +7,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # inclui todo o api/ (que já contém auth/token/ etc)
     path("api/", include("api.urls")),
+    path("api/", include("users.api.urls")),
 ]
 
 # servir uploads no dev
