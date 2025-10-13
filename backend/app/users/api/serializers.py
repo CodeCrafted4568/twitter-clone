@@ -4,7 +4,7 @@ from .models import Follow
 
 User = get_user_model()
 
-class UserMiniSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.IntegerField(read_only=True)
     following_count = serializers.IntegerField(read_only=True)
     is_following = serializers.SerializerMethodField()
