@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.filters import SearchFilter
 
-from .models import Tweet, Like, Follow, Comment
+from .models import Tweet, Like, Comment
+from app.users.api.models import Follow
 from .serializers import (
     TweetSerializer,
     UserSerializer,
