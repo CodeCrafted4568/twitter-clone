@@ -1,4 +1,3 @@
-// src/components/FollowButton.jsx
 import { useState } from "react";
 import api from "../services/api";
 
@@ -9,18 +8,17 @@ export default function FollowButton({ userId, initialFollowing, onUpdate }) {
     async function toggle() {
         if (loading) return;
         setLoading(true);
+
         const next = !following;
         setFollowing(next); // atualização otimista
 
         try {
-            // ✅ usa endpoint correto do Django: /api/follow/<id>/
-            if (next) {
-                const { data } = await api.post(`follow/${userId}/`);
-                if (onUpdate) onUpdate(userId, data);
-            } else {
-                const { data } = await api.delete(`follow/${userId}/`);
-                if (onUpdate) onUpdate(userId, data);
-            }
+            const endpoint = `users/${userId}/follow/`; // ajuste: rota REST correta
+            const method = next ? "post" : "delete";
+            const { data } = await api[method](endpoint);
+
+            // callback para atualizar listas (seguindo, seguidores etc.)
+            if (onUpdate) onUpdate(userId, data);
         } catch (err) {
             console.error("❌ Erro ao seguir:", err);
             setFollowing(!next); // rollback se falhar

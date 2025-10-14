@@ -14,7 +14,6 @@ from .serializers import (
     TweetSerializer,
     UserSerializer,
     RegisterSerializer,
-    UserSerializer,
     CommentSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
@@ -118,27 +117,27 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [SearchFilter]
     search_fields = ["username"]  # /users/?search=tiago
 
-    # ---- follow/unfollow na MESMA rota ----
     @action(detail=True, methods=["post", "delete"], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
+        """Segue ou deixa de seguir um usuário"""
         target = self.get_object()
+        if request.user == target:
+            return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
+
         if request.method == "POST":
-            if request.user == target:
-                return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
             Follow.objects.get_or_create(follower=request.user, following=target)
-            return Response({"status": "following"}, status=status.HTTP_204_NO_CONTENT)
-        # DELETE
-        Follow.objects.filter(follower=request.user, following=target).delete()
-        return Response({"status": "unfollowed"}, status=status.HTTP_204_NO_CONTENT)
+            status_str = "following"
+        else:
+            Follow.objects.filter(follower=request.user, following=target).delete()
+            status_str = "unfollowed"
 
-    # ---- compatibilidade com clientes antigos (opcional) ----
-    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
-    def unfollow(self, request, pk=None):
-        target = self.get_object()
-        Follow.objects.filter(follower=request.user, following=target).delete()
-        return Response({"status": "unfollowed"}, status=status.HTTP_204_NO_CONTENT)
+        data = {
+            "status": status_str,
+            "following_count": Follow.objects.filter(follower=request.user).count(),
+            "followers_count": Follow.objects.filter(following=request.user).count(),
+        }
+        return Response(data, status=status.HTTP_200_OK)
 
-    # ---- listas: who I follow / who follows me ----
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def following(self, request):
         ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
@@ -172,7 +171,6 @@ class CurrentUserView(APIView):
         changed = False
         errs = {}
 
-        # username
         username = (data.get("username") or "").strip()
         if username and username != user.username:
             if User.objects.filter(username=username).exclude(pk=user.pk).exists():
@@ -181,19 +179,17 @@ class CurrentUserView(APIView):
                 user.username = username
                 changed = True
 
-        # password
         password = data.get("password")
         if password:
             user.set_password(password)
             changed = True
 
-        # avatar (User.avatar ou Profile.avatar — cobre os dois casos)
         avatar = data.get("avatar")
         if avatar:
-            if hasattr(user, "avatar"):              # se o campo está no User
+            if hasattr(user, "avatar"):
                 user.avatar = avatar
                 changed = True
-            elif hasattr(user, "profile") and hasattr(user.profile, "avatar"):  # se tem Profile
+            elif hasattr(user, "profile") and hasattr(user.profile, "avatar"):
                 user.profile.avatar = avatar
                 user.profile.save()
                 changed = True
