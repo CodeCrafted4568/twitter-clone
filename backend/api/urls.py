@@ -16,21 +16,21 @@ router.register(r"tweets", TweetViewSet, basename="tweet")
 router.register(r"users", UserViewSet, basename="user")
 
 urlpatterns = [
-    # Autenticação JWT
+    # Registro
+    path("register/", RegisterView.as_view(), name="register"),
+
+    # JWT Auth
     path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
-    # Registro e usuário atual
-    path("register/", RegisterView.as_view(), name="register"),
-    path("me/", CurrentUserView.as_view(), name="current-user"),
-
-    # Seguidores / seguindo
-    path("following/", FollowingListView.as_view(), name="following"),
-    path("followers/", FollowersListView.as_view(), name="followers"),
+    # Usuário logado e relacionamentos
+    path("users/me/", CurrentUserView.as_view(), name="current-user"),
+    path("users/following/", FollowingListView.as_view(), name="user-following"),
+    path("users/followers/", FollowersListView.as_view(), name="user-followers"),
 
     # Feed
     path("feed/", feed_view, name="feed"),
 
-    # Viewsets REST
+    # Endpoints REST padrão (tweets/users)
     path("", include(router.urls)),
 ]
