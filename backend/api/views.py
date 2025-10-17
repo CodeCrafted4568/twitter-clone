@@ -27,10 +27,14 @@ User = get_user_model()
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def feed_view(request):
-    """Retorna tweets apenas dos usuários que eu sigo"""
+    """Retorna tweets apenas dos usuários que o usuário autenticado segue."""
     user = request.user
     following_ids = user.following.values_list("following_id", flat=True)
-    qs = Tweet.objects.filter(user_id__in=following_ids).select_related("user").order_by("-created_at")
+    qs = (
+        Tweet.objects.filter(user_id__in=following_ids)
+        .select_related("user")
+        .order_by("-created_at")
+    )
     data = TweetSerializer(qs, many=True, context={"request": request}).data
     return Response(data)
 
@@ -39,7 +43,7 @@ def feed_view(request):
 # Registro de usuários
 # =============================
 class RegisterView(APIView):
-    """Cadastro simples (sem auth)."""
+    """Endpoint para registro de novos usuários (sem autenticação necessária)."""
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -54,6 +58,7 @@ class RegisterView(APIView):
 # Tweets (CRUD, curtidas, comentários)
 # =============================
 class TweetViewSet(viewsets.ModelViewSet):
+    """Gerencia tweets e permite curtidas e comentários."""
     permission_classes = [IsOwnerOrReadOnly]
     serializer_class = TweetSerializer
 
@@ -82,6 +87,7 @@ class TweetViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
+        """Curtir ou descurtir um tweet."""
         t = self.get_object()
         if request.method == "POST":
             Like.objects.get_or_create(user=request.user, tweet=t)
@@ -91,15 +97,14 @@ class TweetViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get", "post"], permission_classes=[IsAuthenticated])
     def comments(self, request, pk=None):
+        """Listar ou adicionar comentários em um tweet."""
         t = self.get_object()
         if request.method == "GET":
             qs = t.comments.select_related("user").all()
             return Response(CommentSerializer(qs, many=True).data)
         ser = CommentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        c = Comment.objects.create(
-            user=request.user, tweet=t, text=ser.validated_data["text"]
-        )
+        c = Comment.objects.create(user=request.user, tweet=t, text=ser.validated_data["text"])
         return Response(CommentSerializer(c).data, status=201)
 
 
@@ -107,10 +112,7 @@ class TweetViewSet(viewsets.ModelViewSet):
 # Usuários (listar, follow/unfollow)
 # =============================
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Lista/detalhe de usuários + follow/unfollow + listas (following/followers).
-    Suporta busca: GET /api/users/?search=<termo>
-    """
+    """Lista e detalhes de usuários. Permite seguir/deixar de seguir."""
     queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -119,7 +121,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post", "delete"], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
-        """Segue ou deixa de seguir um usuário"""
+        """Segue ou deixa de seguir um usuário."""
         target = self.get_object()
         if request.user == target:
             return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
@@ -140,6 +142,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def following(self, request):
+        """Lista de quem o usuário autenticado está seguindo."""
         ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
         qs = User.objects.filter(id__in=list(ids)).order_by("username")
         page = self.paginate_queryset(qs)
@@ -148,6 +151,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def followers(self, request):
+        """Lista de quem segue o usuário autenticado."""
         ids = Follow.objects.filter(following=request.user).values_list("follower_id", flat=True)
         qs = User.objects.filter(id__in=list(ids)).order_by("username")
         page = self.paginate_queryset(qs)
@@ -159,6 +163,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 # Perfil do usuário logado
 # =============================
 class CurrentUserView(APIView):
+    """Visualiza e atualiza o perfil do usuário autenticado."""
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
