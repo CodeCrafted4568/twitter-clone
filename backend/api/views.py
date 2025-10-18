@@ -122,27 +122,34 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=["post", "delete"], permission_classes=[permissions.IsAuthenticated])
     def follow(self, request, pk=None):
         """Segue ou deixa de seguir um usuário."""
+        # Import dentro da função evita erro circular em produção
+        from app.users.api.models import Follow  
+
         target = self.get_object()
-        if request.user == target:
+        user = request.user
+
+        if user == target:
             return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
 
         if request.method == "POST":
-            Follow.objects.get_or_create(follower=request.user, following=target)
-            status_str = "following"
+            Follow.objects.get_or_create(follower=user, following=target)
+            msg = "Agora você está seguindo este usuário."
         else:
-            Follow.objects.filter(follower=request.user, following=target).delete()
-            status_str = "unfollowed"
+            Follow.objects.filter(follower=user, following=target).delete()
+            msg = "Você deixou de seguir este usuário."
 
         data = {
-            "status": status_str,
-            "following_count": Follow.objects.filter(follower=request.user).count(),
-            "followers_count": Follow.objects.filter(following=request.user).count(),
+            "detail": msg,
+            "followers_count": Follow.objects.filter(following=target).count(),
+            "following_count": Follow.objects.filter(follower=target).count(),
         }
         return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def following(self, request):
         """Lista de quem o usuário autenticado está seguindo."""
+        from app.users.api.models import Follow
+
         ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
         qs = User.objects.filter(id__in=list(ids)).order_by("username")
         page = self.paginate_queryset(qs)
@@ -152,6 +159,8 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def followers(self, request):
         """Lista de quem segue o usuário autenticado."""
+        from app.users.api.models import Follow
+
         ids = Follow.objects.filter(following=request.user).values_list("follower_id", flat=True)
         qs = User.objects.filter(id__in=list(ids)).order_by("username")
         page = self.paginate_queryset(qs)
