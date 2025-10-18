@@ -28,7 +28,7 @@ INSTALLED_APPS = [
 
     # Apps locais
     'api',
-    'app.users.api',
+    'app.users',
 ]
 
 REST_FRAMEWORK = {
