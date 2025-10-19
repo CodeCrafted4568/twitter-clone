@@ -9,46 +9,69 @@ export default function Home() {
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ============================================================
+  // 🔹 Carrega perfil + feed
+  // ============================================================
   const loadAll = useCallback(async () => {
     try {
       setLoading(true);
-      // baseURL já é .../api/, então aqui é só o caminho relativo
       const [{ data: meData }, { data: feedData }] = await Promise.all([
         api.get("users/me/"),
-        api.get("feed/")
+        api.get("feed/"),
       ]);
       setMe(meData);
       setTweets(feedData.results ?? feedData ?? []);
+    } catch (err) {
+      console.error("❌ Erro ao carregar feed:", err);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
+  // ============================================================
+  // 🔹 Postar novo tweet
+  // ============================================================
   async function onPost(text) {
     const body = (text || "").trim();
     if (!body) return;
-    const { data } = await api.post("tweets/", { text: body });
-    setTweets(t => [data, ...t]);
+    try {
+      const { data } = await api.post("tweets/", { text: body });
+      setTweets((prev) => [data, ...prev]);
+    } catch (err) {
+      console.error("❌ Erro ao postar tweet:", err);
+    }
   }
 
-  async function onLike(id) {
-    await api.post(`tweets/${id}/like/`);
-    setTweets(t =>
-      t.map(x => x.id === id
-        ? { ...x, likes_count: (x.likes_count || 0) + 1, liked: true }
-        : x
+  // ============================================================
+  // 🔹 Atualiza estado local de likes (sem reload do feed)
+  // ============================================================
+  function onLikeChange(id, liked) {
+    setTweets((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? {
+            ...t,
+            liked,
+            likes_count: t.likes_count + (liked ? 1 : -1),
+          }
+          : t
       )
     );
   }
 
-  async function onUnlike(id) {
-    await api.delete(`tweets/${id}/like/`);
-    setTweets(t =>
-      t.map(x => x.id === id
-        ? { ...x, likes_count: Math.max((x.likes_count || 1) - 1, 0), liked: false }
-        : x
+  // ============================================================
+  // 🔹 Atualiza comentários de um tweet (sem recarregar tudo)
+  // ============================================================
+  function onCommentAdded(id) {
+    setTweets((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, comments_count: (t.comments_count ?? 0) + 1 }
+          : t
       )
     );
   }
@@ -68,8 +91,8 @@ export default function Home() {
             tweets={tweets}
             loading={loading}
             onPost={onPost}
-            onLike={onLike}
-            onUnlike={onUnlike}
+            onLikeChange={onLikeChange}
+            onCommentAdded={onCommentAdded}
           />
         )}
       </main>

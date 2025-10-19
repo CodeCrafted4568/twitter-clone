@@ -1,12 +1,23 @@
 import Composer from "./Composer";
 import TweetCard from "./TweetCard";
 
-export default function Feed({ me, tweets, loading, onPost, onLike, onUnlike }) {
+export default function Feed({
+    me,
+    tweets,
+    loading,
+    onPost,
+    onLikeChange,
+    onCommentAdded,
+}) {
     return (
         <div>
             {me && <Composer me={me} onPost={onPost} />}
 
-            {loading && <div className="skeleton" style={{ marginTop: 12 }}>Carregando…</div>}
+            {loading && (
+                <div className="skeleton" style={{ marginTop: 12 }}>
+                    Carregando…
+                </div>
+            )}
 
             {tweets.length > 0 ? (
                 <ul className="tweet-list">
@@ -14,13 +25,22 @@ export default function Feed({ me, tweets, loading, onPost, onLike, onUnlike }) 
                         <li key={t.id}>
                             <TweetCard
                                 tweet={t}
-                                onLike={() => (t.liked ? onUnlike(t.id) : onLike(t.id))}
+                                // Atualiza like individualmente
+                                onRefresh={() => { }}
+                                onLikeChange={onLikeChange}
+                                onCommentAdded={onCommentAdded}
                             />
                         </li>
                     ))}
                 </ul>
             ) : (
-                <p style={{ textAlign: "center", color: "#8ecdf7", marginTop: 20 }}>
+                <p
+                    style={{
+                        textAlign: "center",
+                        color: "#8ecdf7",
+                        marginTop: 20,
+                    }}
+                >
                     Siga alguns perfis para ver os tweets aqui.
                 </p>
             )}
