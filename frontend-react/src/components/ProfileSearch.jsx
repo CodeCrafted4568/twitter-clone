@@ -2,41 +2,17 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import FollowButton from "./FollowButton";
 import perfilIcon from "../assets/perfil.png";
-
-// debounce simples
-function useDebounced(value, delay = 350) {
-    const [v, setV] = useState(value);
-    useEffect(() => {
-        const t = setTimeout(() => setV(value), delay);
-        return () => clearTimeout(t);
-    }, [value, delay]);
-    return v;
-}
+import { useUser } from "./UserContext.jsx";
 
 export default function ProfileSearch() {
     const [q, setQ] = useState("");
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [me, setMe] = useState(null);
+    const { me, refreshUser } = useUser();
 
-    const qDeb = useDebounced(q);
-
-    // pega o usuário atual (pra não listar ele mesmo)
     useEffect(() => {
-        (async () => {
-            try {
-                const { data } = await api.get("users/me/");
-                setMe(data);
-            } catch {
-                setMe(null);
-            }
-        })();
-    }, []);
-
-    // busca por usuários
-    useEffect(() => {
-        (async () => {
-            const term = qDeb.trim();
+        const delayDebounce = setTimeout(async () => {
+            const term = q.trim();
             if (!term) {
                 setItems([]);
                 return;
@@ -55,59 +31,27 @@ export default function ProfileSearch() {
             } finally {
                 setLoading(false);
             }
-        })();
-    }, [qDeb, me]);
+        }, 400);
 
-    // Atualiza dados do usuário após seguir/deixar de seguir
-    function handleUpdate(userId, data) {
-        setItems((prev) =>
-            prev.map((u) =>
-                u.id === userId
-                    ? {
-                        ...u,
-                        followers_count: data.followers_count,
-                        following_count: data.following_count,
-                        is_following: data.is_following,
-                    }
-                    : u
-            )
-        );
-    }
+        return () => clearTimeout(delayDebounce);
+    }, [q, me]);
 
     return (
         <section className="widget">
             <h3>Buscar perfis</h3>
-
             <input
                 className="field"
                 placeholder="Procurar por @usuário"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                style={{ width: "100%" }}
             />
-
-            {loading && q.trim() && (
-                <p className="muted" style={{ marginTop: 8 }}>
-                    Buscando…
-                </p>
-            )}
-
-            {!loading && q.trim() && items.length === 0 && (
-                <p className="muted" style={{ marginTop: 8 }}>
-                    Nenhum resultado
-                </p>
-            )}
-
+            {loading && <p className="muted">Buscando...</p>}
+            {!loading && q.trim() && items.length === 0 && <p className="muted">Nenhum resultado</p>}
             {items.length > 0 && (
                 <ul className="people" style={{ marginTop: 10 }}>
                     {items.map((u) => (
                         <li key={u.id}>
-                            <img
-                                className="avatar sm"
-                                src={u.avatar_url || perfilIcon}
-                                alt={u.username}
-                                loading="lazy"
-                            />
+                            <img className="avatar sm" src={u.avatar_url || perfilIcon} alt={u.username} />
                             <div className="who">
                                 <strong>@{u.username}</strong>
                                 <span className="muted">
@@ -117,7 +61,7 @@ export default function ProfileSearch() {
                             <FollowButton
                                 userId={u.id}
                                 initialFollowing={u.is_following}
-                                onUpdate={handleUpdate}
+                                onUpdate={refreshUser}
                             />
                         </li>
                     ))}

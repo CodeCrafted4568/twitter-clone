@@ -1,38 +1,42 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import api from "../services/api";
 
 const UserContext = createContext();
 
 export function UserProvider({ children }) {
     const [me, setMe] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [followers, setFollowers] = useState([]);
+    const [following, setFollowing] = useState([]);
 
-    // Carrega o usuário logado
-    useEffect(() => {
-        (async () => {
-            try {
-                const { data } = await api.get("users/me/");
-                setMe(data);
-            } catch {
-                setMe(null);
-            } finally {
-                setLoading(false);
-            }
-        })();
+    const refreshUser = useCallback(async () => {
+        try {
+            const meRes = await api.get("users/me/");
+            const fresh = {
+                ...meRes.data,
+                avatar_url: meRes.data.avatar_url
+                    ? `${meRes.data.avatar_url}?t=${Date.now()}`
+                    : "",
+            };
+            setMe(fresh);
+
+            const [a, b] = await Promise.all([
+                api.get("users/following/"),
+                api.get("users/followers/"),
+            ]);
+
+            setFollowing(a.data.results ?? a.data ?? []);
+            setFollowers(b.data.results ?? b.data ?? []);
+        } catch {
+            setMe(null);
+            setFollowers([]);
+            setFollowing([]);
+        }
     }, []);
 
-    // Atualiza contadores ao seguir/desseguir
-    const refreshUser = async () => {
-        try {
-            const { data } = await api.get("users/me/");
-            setMe(data);
-        } catch {
-            /* nada */
-        }
-    };
+    useEffect(() => { refreshUser(); }, [refreshUser]);
 
     return (
-        <UserContext.Provider value={{ me, setMe, refreshUser, loading }}>
+        <UserContext.Provider value={{ me, followers, following, refreshUser }}>
             {children}
         </UserContext.Provider>
     );
