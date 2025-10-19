@@ -8,7 +8,7 @@ export default function ProfileSearch() {
     const [q, setQ] = useState("");
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
-    const { me, refreshUser } = useUser();
+    const { me, following, refreshUser } = useUser();
 
     useEffect(() => {
         const delayDebounce = setTimeout(async () => {
@@ -21,12 +21,19 @@ export default function ProfileSearch() {
                 setLoading(true);
                 const { data } = await api.get("users/", { params: { search: term } });
                 const results = data.results ?? data ?? [];
+
+                // 🔹 Ajuste principal: cruzar com `following`
                 const normalized = results
                     .filter((u) => !me || u.id !== me.id)
-                    .map((u) => ({
-                        ...u,
-                        avatar_url: u.avatar_url ? `${u.avatar_url}?t=${Date.now()}` : "",
-                    }));
+                    .map((u) => {
+                        const isFollowing = following.some((f) => f.id === u.id);
+                        return {
+                            ...u,
+                            is_following: isFollowing,
+                            avatar_url: u.avatar_url ? `${u.avatar_url}?t=${Date.now()}` : "",
+                        };
+                    });
+
                 setItems(normalized);
             } finally {
                 setLoading(false);
@@ -34,7 +41,7 @@ export default function ProfileSearch() {
         }, 400);
 
         return () => clearTimeout(delayDebounce);
-    }, [q, me]);
+    }, [q, me, following]);
 
     return (
         <section className="widget">
@@ -55,7 +62,7 @@ export default function ProfileSearch() {
                             <div className="who">
                                 <strong>@{u.username}</strong>
                                 <span className="muted">
-                                    {u.followers_count ?? 0} seg · {u.following_count ?? 0} seguindo
+                                    {u.followers_count ?? 0} seguidores · {u.following_count ?? 0} seguindo
                                 </span>
                             </div>
                             <FollowButton

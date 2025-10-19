@@ -41,7 +41,7 @@ export default function FollowButton({ userId, initialFollowing, onUpdate }) {
             onClick={toggle}
             disabled={loading}
         >
-            {loading ? "..." : following ? "Seguindo" : "Seguir"}
+            {loading ? "..." : following ? "Deixar de seguir" : "Seguir"}
         </button>
     );
 }
