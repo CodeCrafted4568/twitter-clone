@@ -1,79 +1,73 @@
-import { useEffect, useState, useCallback } from "react";
-import api from "../services/api";
+import { useEffect, useState } from "react";
 import perfilIcon from "../assets/perfil.png";
 import ProfileModal from "../components/ProfileModal.jsx";
 import ProfileSearch from "../components/ProfileSearch.jsx";
+import { useUser } from "../components/UserContext";
 
 export default function RightRail() {
-    const [me, setMe] = useState(null);
-    const [following, setFollowing] = useState([]);
-    const [followers, setFollowers] = useState([]);
+    const { me, refreshUser, loading } = useUser();
     const [openProfile, setOpenProfile] = useState(false);
     const [showFollowing, setShowFollowing] = useState(false);
     const [showFollowers, setShowFollowers] = useState(false);
 
-    const load = useCallback(async () => {
-        try {
-            // pega meu perfil
-            const meRes = await api.get("users/me/");
-            const fresh = {
-                ...meRes.data,
-                avatar_url: meRes.data.avatar_url
-                    ? `${meRes.data.avatar_url}?t=${Date.now()}`
-                    : ""
-            };
-            setMe(fresh);
+    // Atualiza listas ao abrir a barra lateral (caso precise)
+    useEffect(() => {
+        if (!me && !loading) refreshUser();
+    }, [me, loading, refreshUser]);
 
-            // listas
-            const [a, b] = await Promise.all([
-                api.get("users/following/"),
-                api.get("users/followers/")
-            ]);
+    if (loading) {
+        return <div className="right-rail"><p>Carregando...</p></div>;
+    }
 
-            setFollowing(a.data.results ?? a.data ?? []);
-            setFollowers(b.data.results ?? b.data ?? []);
-        } catch {
-            // token inválido/expirado etc.
-            setMe(null);
-            setFollowing([]);
-            setFollowers([]);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
+    if (!me) {
+        return (
+            <div className="right-rail">
+                <p>Usuário não logado.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="right-rail">
-            <ProfileSearch onChangeFollow={load} />
+            {/* 🔍 Busca de perfis */}
+            <ProfileSearch onChangeFollow={refreshUser} />
 
-            <section className="widget profile-widget" onClick={() => setOpenProfile(true)}>
+            {/* 👤 Meu perfil */}
+            <section
+                className="widget profile-widget"
+                onClick={() => setOpenProfile(true)}
+            >
                 <div className="profile-header">
                     <img
                         className="avatar lg"
-                        src={me?.avatar_url || perfilIcon}
+                        src={me.avatar_url || perfilIcon}
                         alt="Perfil"
                         loading="lazy"
                     />
                     <div className="who">
-                        <strong>{me?.username ?? "Meu perfil"}</strong>
+                        <strong>{me.username ?? "Meu perfil"}</strong>
                     </div>
                 </div>
             </section>
 
-            {/* Seguindo */}
+            {/* 🧍‍♂️ Seguindo */}
             <section className="widget">
-                <button className="toggle-head" onClick={() => setShowFollowing(v => !v)} type="button">
+                <button
+                    className="toggle-head"
+                    onClick={() => setShowFollowing(v => !v)}
+                    type="button"
+                >
                     <span>Seguindo</span>
-                    <span className="pill">{following.length}</span>
+                    <span className="pill">{me.following?.length ?? 0}</span>
                     <span className={`caret ${showFollowing ? "up" : ""}`} />
                 </button>
 
                 {showFollowing && (
                     <ul className="people">
-                        {following.length === 0 ? (
+                        {(!me.following || me.following.length === 0) ? (
                             <li className="muted">Você ainda não segue ninguém</li>
                         ) : (
-                            following.map(u => (
+                            me.following.map(u => (
                                 <li key={u.id}>
                                     <div className="avatar sm" />
                                     <div className="who">
@@ -87,20 +81,24 @@ export default function RightRail() {
                 )}
             </section>
 
-            {/* Seguidores */}
+            {/* 👥 Seguidores */}
             <section className="widget">
-                <button className="toggle-head" onClick={() => setShowFollowers(v => !v)} type="button">
+                <button
+                    className="toggle-head"
+                    onClick={() => setShowFollowers(v => !v)}
+                    type="button"
+                >
                     <span>Seguidores</span>
-                    <span className="pill">{followers.length}</span>
+                    <span className="pill">{me.followers?.length ?? 0}</span>
                     <span className={`caret ${showFollowers ? "up" : ""}`} />
                 </button>
 
                 {showFollowers && (
                     <ul className="people">
-                        {followers.length === 0 ? (
+                        {(!me.followers || me.followers.length === 0) ? (
                             <li className="muted">Ninguém te segue ainda</li>
                         ) : (
-                            followers.map(u => (
+                            me.followers.map(u => (
                                 <li key={u.id}>
                                     <div className="avatar sm" />
                                     <div className="who">
@@ -114,8 +112,14 @@ export default function RightRail() {
                 )}
             </section>
 
-            {/* Recarrega os dados quando fechar o modal */}
-            <ProfileModal open={openProfile} onClose={() => { setOpenProfile(false); load(); }} />
+            {/* 🧩 Modal de perfil */}
+            <ProfileModal
+                open={openProfile}
+                onClose={() => {
+                    setOpenProfile(false);
+                    refreshUser(); // ✅ atualiza ao fechar o modal
+                }}
+            />
         </div>
     );
 }
