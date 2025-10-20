@@ -7,8 +7,6 @@ export default function handler(req, res) {
         const t = state.tweets.find(x => x.id === id);
 
         if (!t) return res.status(404).json({ detail: "Tweet não encontrado" });
-
-        // Inicializa o array de comentários
         if (!state.comments[id]) state.comments[id] = [];
 
         if (req.method === "GET") {
@@ -25,9 +23,8 @@ export default function handler(req, res) {
 
         if (req.method === "POST") {
             const { text } = req.body || {};
-            if (!text?.trim()) {
-                return res.status(400).json({ detail: "Texto obrigatório" });
-            }
+            if (!text?.trim()) return res.status(400).json({ detail: "Texto obrigatório" });
+
             const c = {
                 id: state.nextCommentId++,
                 userId: meId,
