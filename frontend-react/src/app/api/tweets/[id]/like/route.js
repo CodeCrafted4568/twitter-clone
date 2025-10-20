@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
-import { state, tweetDTO } from "../../../../_state";
+import { state, tweetDTO } from "@/api/_state";
 
 export async function POST(req, { params }) {
-  const id = parseInt(params.id, 10);
-  const meId = state.currentUserId;
-  const t = state.tweets.find(x => x.id === id);
-  if (!t) return NextResponse.json({ detail: "not found" }, { status: 404 });
-  t.likes.add(meId);
-  return NextResponse.json({ status: "liked", ...tweetDTO(t, meId) });
-}
+  try {
+    const id = parseInt(params.id);
+    const tweet = state.tweets.find(t => t.id === id);
+    if (!tweet) {
+      return NextResponse.json({ error: "Tweet não encontrado" }, { status: 404 });
+    }
 
-export async function DELETE(req, { params }) {
-  const id = parseInt(params.id, 10);
-  const meId = state.currentUserId;
-  const t = state.tweets.find(x => x.id === id);
-  if (!t) return NextResponse.json({ detail: "not found" }, { status: 404 });
-  t.likes.delete(meId);
-  return NextResponse.json({ status: "unliked", ...tweetDTO(t, meId) });
+    const userId = state.currentUserId;
+    if (tweet.likes.has(userId)) {
+      tweet.likes.delete(userId);
+    } else {
+      tweet.likes.add(userId);
+    }
+
+    return NextResponse.json(tweetDTO(tweet, userId));
+  } catch (err) {
+    console.error("Erro em POST /api/tweets/[id]/like:", err);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
 }
