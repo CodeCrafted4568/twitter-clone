@@ -5,20 +5,18 @@ export default function handler(req, res) {
         const meId = state.currentUserId;
         const id = parseInt(req.query.id, 10);
         const t = state.tweets.find(x => x.id === id);
-
         if (!t) return res.status(404).json({ detail: "Tweet não encontrado" });
+
         if (!state.comments[id]) state.comments[id] = [];
 
         if (req.method === "GET") {
-            const list = state.comments[id];
-            return res.status(200).json(
-                list.map(c => ({
-                    id: c.id,
-                    user: state.users.find(u => u.id === c.userId)?.username || "user",
-                    text: c.text,
-                    created_at: c.created_at
-                }))
-            );
+            const list = state.comments[id].map(c => ({
+                id: c.id,
+                user: state.users.find(u => u.id === c.userId)?.username || "user",
+                text: c.text,
+                created_at: c.created_at,
+            }));
+            return res.status(200).json(JSON.parse(JSON.stringify(list)));
         }
 
         if (req.method === "POST") {
@@ -28,16 +26,19 @@ export default function handler(req, res) {
             const c = {
                 id: state.nextCommentId++,
                 userId: meId,
-                text: String(text),
-                created_at: new Date().toISOString()
+                text: text.trim(),
+                created_at: new Date().toISOString(),
             };
             state.comments[id].unshift(c);
-            return res.status(201).json({
+
+            const safeComment = JSON.parse(JSON.stringify({
                 id: c.id,
                 user: state.users.find(u => u.id === c.userId)?.username || "user",
                 text: c.text,
-                created_at: c.created_at
-            });
+                created_at: c.created_at,
+            }));
+
+            return res.status(201).json(safeComment);
         }
 
         return res.status(405).json({ detail: "Método não permitido" });
