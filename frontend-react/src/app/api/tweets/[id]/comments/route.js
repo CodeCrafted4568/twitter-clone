@@ -1,43 +1,35 @@
 import { NextResponse } from "next/server";
-import { state } from "@/api/_state";
+import { state, userById } from "@/api/_state";
 
-export async function GET(_req, { params }) {
-  try {
-    const id = parseInt(params.id);
-    const comments = state.comments[id] || [];
-    return NextResponse.json(comments);
-  } catch (err) {
-    console.error("Erro no GET /api/tweets/[id]/comments:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-  }
+export async function GET(req, { params }) {
+  const { id } = params;
+  console.log("🔥 [/api/tweets/" + id + "/comments] rota GET chamada");
+
+  const list = state.comments[id] || [];
+  return NextResponse.json({ comments: list });
 }
 
 export async function POST(req, { params }) {
-  try {
-    const id = parseInt(params.id);
-    const tweet = state.tweets.find(t => t.id === id);
-    if (!tweet) {
-      return NextResponse.json({ error: "Tweet não encontrado" }, { status: 404 });
-    }
+  const { id } = params;
+  const { text } = await req.json();
+  console.log("🔥 [/api/tweets/" + id + "/comments] rota POST chamada");
 
-    const { text } = await req.json();
-    if (!text || !text.trim()) {
-      return NextResponse.json({ error: "Texto obrigatório" }, { status: 400 });
-    }
+  if (!text) return NextResponse.json({ error: "Texto é obrigatório" }, { status: 400 });
 
-    const comment = {
-      id: state.nextCommentId++,
-      userId: state.currentUserId,
-      text,
-      created_at: new Date().toISOString(),
-    };
+  const comment = {
+    id: state.nextCommentId++,
+    userId: state.currentUserId,
+    text,
+    created_at: new Date().toISOString(),
+  };
 
-    if (!state.comments[id]) state.comments[id] = [];
-    state.comments[id].push(comment);
+  if (!state.comments[id]) state.comments[id] = [];
+  state.comments[id].push(comment);
 
-    return NextResponse.json(comment);
-  } catch (err) {
-    console.error("Erro no POST /api/tweets/[id]/comments:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-  }
+  return NextResponse.json({
+    id: comment.id,
+    user: userById(comment.userId)?.username || "user",
+    text: comment.text,
+    created_at: comment.created_at,
+  });
 }
