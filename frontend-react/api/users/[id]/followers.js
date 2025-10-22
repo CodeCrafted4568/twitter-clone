@@ -1,4 +1,4 @@
-import { state, userById, publicUser } from "../_state";
+import { state, userById, publicUser } from "../../_state.js";
 
 export default function handler(req, res) {
     const me = userById(state.currentUserId);
