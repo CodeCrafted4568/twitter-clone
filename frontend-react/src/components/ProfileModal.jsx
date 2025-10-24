@@ -99,7 +99,7 @@ export default function ProfileModal({ open, onClose }) {
             if (avatar) fd.append("avatar", avatar);
 
             // atualização parcial
-            await api.patch("users/me/", fd);
+            await api.patch("/api/users/me/", fd);
 
             onClose?.();
             // simples e eficiente pra refletir avatar/nome novos

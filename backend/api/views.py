@@ -66,7 +66,7 @@ class TweetViewSet(viewsets.ModelViewSet):
         return (
             Tweet.objects.select_related("user")
             .annotate(
-                likes_count=Count("like", distinct=True),
+                likes_count=Count("likes", distinct=True),
                 comments_count=Count("comments", distinct=True),
             )
             .order_by("-created_at")
@@ -85,27 +85,47 @@ class TweetViewSet(viewsets.ModelViewSet):
             return []
         return super().get_permissions()
 
+    # ✅ Curtir / Descurtir
     @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
-        """Curtir ou descurtir um tweet."""
         t = self.get_object()
-        if request.method == "POST":
-            Like.objects.get_or_create(user=request.user, tweet=t)
-            return Response({"status": "liked"})
-        Like.objects.filter(user=request.user, tweet=t).delete()
-        return Response({"status": "unliked"})
+        user = request.user
 
+        if request.method == "POST":
+            Like.objects.get_or_create(user=user, tweet=t)
+            return Response(
+                {"liked": True, "likes_count": t.likes.count()},
+                status=status.HTTP_200_OK
+            )
+
+        Like.objects.filter(user=user, tweet=t).delete()
+        return Response(
+            {"liked": False, "likes_count": t.likes.count()},
+            status=status.HTTP_200_OK
+        )
+
+    # ✅ Listar / Adicionar comentários
     @action(detail=True, methods=["get", "post"], permission_classes=[IsAuthenticated])
     def comments(self, request, pk=None):
-        """Listar ou adicionar comentários em um tweet."""
         t = self.get_object()
+
         if request.method == "GET":
             qs = t.comments.select_related("user").all()
-            return Response(CommentSerializer(qs, many=True).data)
+            ser = CommentSerializer(qs, many=True)
+            return Response(ser.data, status=status.HTTP_200_OK)
+
         ser = CommentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        c = Comment.objects.create(user=request.user, tweet=t, text=ser.validated_data["text"])
-        return Response(CommentSerializer(c).data, status=201)
+        c = Comment.objects.create(
+            user=request.user,
+            tweet=t,
+            text=ser.validated_data["text"]
+        )
+        return Response(
+            CommentSerializer(c).data,
+            status=status.HTTP_201_CREATED
+        )
+
 
 
 # =============================
