@@ -113,12 +113,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # =============================
 # CORS / API
 # =============================
-CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = [
-    'https://*vercel.app',
-    'https://*render.com',
-    'http://localhost:3000',
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",    # Desenvolvimento local
+    "https://twitter-frontend.vercel.app",  # Vercel frontend
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://twitter-frontend.vercel.app",
+]
+
+
+# =============================
+# Arquivos de mídia (Uploads)
+# =============================
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 
 APPEND_SLASH = True

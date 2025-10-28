@@ -19,7 +19,7 @@ export default function ProfileModal({ open, onClose }) {
         if (!open) return;
         (async () => {
             try {
-                const { data } = await api.get("users/me/");
+                const { data } = await api.get("/api/users/me/");
                 setUsername(data.username || "");
                 setInitialUsername(data.username || "");
                 setPreview(data.avatar_url ? `${data.avatar_url}?t=${Date.now()}` : "");
@@ -99,7 +99,7 @@ export default function ProfileModal({ open, onClose }) {
             if (avatar) fd.append("avatar", avatar);
 
             // atualização parcial
-            await api.patch("/api/users/me/", fd);
+            await api.patch("users/me/", fd);
 
             onClose?.();
             // simples e eficiente pra refletir avatar/nome novos
@@ -176,6 +176,24 @@ export default function ProfileModal({ open, onClose }) {
                             </label>
                         </div>
                     </div>
+
+                    <button
+                        className="btn-remove"
+                        onClick={async () => {
+                            const confirmDelete = window.confirm("Remover foto de perfil?");
+                            if (!confirmDelete) return;
+
+                            try {
+                                await api.patch("/api/users/me/", { avatar: "remove" });
+                                onAvatarChange(); // se já existir função de refresh
+                            } catch (error) {
+                                console.error("Erro ao remover avatar:", error);
+                            }
+                        }}
+                    >
+                        Remover foto de perfil
+                    </button>
+
 
                     <input
                         ref={firstRef}

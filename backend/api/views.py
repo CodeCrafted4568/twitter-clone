@@ -132,7 +132,7 @@ class TweetViewSet(viewsets.ModelViewSet):
 # Usuários (listar, follow/unfollow)
 # =============================
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """Lista e detalhes de usuários. Permite seguir/deixar de seguir."""
+    """Lista e detalhes de usuários. Permite seguir/deixar de seguir e remover a foto de perfil."""
     queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -146,7 +146,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         if request.user == target:
             return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
 
-        # Cria ou remove o follow
         if request.method == "POST":
             Follow.objects.get_or_create(follower=request.user, following=target)
             status_str = "following"
@@ -178,6 +177,22 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         page = self.paginate_queryset(qs)
         ser = UserSerializer(page or qs, many=True, context={"request": request})
         return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
+
+    @action(detail=False, methods=["delete"], permission_classes=[permissions.IsAuthenticated])
+    def remove_profile_image(self, request):
+        """
+        Remove a imagem de perfil do usuário autenticado.
+        """
+        user = request.user
+
+        if not user.profile_image:
+            return Response({"detail": "Nenhuma imagem para remover."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.profile_image.delete(save=True)
+
+        serializer = UserSerializer(user, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 

@@ -104,23 +104,34 @@ class UserMeSerializer(serializers.ModelSerializer):
         profile_data = validated_data.pop("profile", {})
         username = validated_data.get("username")
 
+        # atualiza username
         if username:
             instance.username = username
 
+        # atualiza senha (vem direto do request, não de validated_data)
         password = self.context["request"].data.get("password")
         if password:
             instance.set_password(password)
 
         instance.save()
 
-        # atualiza avatar no Profile
+        # atualiza avatar
         if profile_data:
             avatar = profile_data.get("avatar", None)
             profile = getattr(instance, "profile", None)
             if profile is None:
                 profile = Profile.objects.create(user=instance)
-            if avatar is not None:
+
+            # remover avatar
+            if avatar == "remove":
+                profile.avatar.delete(save=False)
+                profile.avatar = None
+                profile.save()
+
+            # salvar novo avatar
+            elif avatar is not None:
                 profile.avatar = avatar
                 profile.save()
 
         return instance
+
