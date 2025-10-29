@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.filters import SearchFilter
+from django.contrib.auth.models import User
 
 from .models import Tweet, Like, Comment
 from app.users.models import Follow
@@ -51,7 +52,7 @@ class RegisterView(APIView):
         s = RegisterSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         user = s.save()
-        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(UserSerializer(user, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 # =============================
@@ -85,54 +86,66 @@ class TweetViewSet(viewsets.ModelViewSet):
             return []
         return super().get_permissions()
 
-    # ✅ Curtir / Descurtir
+        # ✅ Curtir / Descurtir
     @action(detail=True, methods=["post", "delete"], permission_classes=[IsAuthenticated])
     def like(self, request, pk=None):
-        t = self.get_object()
+        tweet = self.get_object()
         user = request.user
 
         if request.method == "POST":
-            Like.objects.get_or_create(user=user, tweet=t)
-            return Response(
-                {"liked": True, "likes_count": t.likes.count()},
-                status=status.HTTP_200_OK
-            )
+            Like.objects.get_or_create(user=user, tweet=tweet)
+        else:
+            Like.objects.filter(user=user, tweet=tweet).delete()
 
-        Like.objects.filter(user=user, tweet=t).delete()
-        return Response(
-            {"liked": False, "likes_count": t.likes.count()},
-            status=status.HTTP_200_OK
-        )
+        # Recarrega o Tweet com anotations atualizados
+        tweet = Tweet.objects.annotate(
+            likes_count=Count("likes", distinct=True),
+            comments_count=Count("comments", distinct=True),
+        ).get(id=tweet.id)
+
+        serializer = self.get_serializer(tweet)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
     # ✅ Listar / Adicionar comentários
     @action(detail=True, methods=["get", "post"], permission_classes=[IsAuthenticated])
     def comments(self, request, pk=None):
-        t = self.get_object()
+        tweet = self.get_object()
 
         if request.method == "GET":
-            qs = t.comments.select_related("user").all()
-            ser = CommentSerializer(qs, many=True)
+            qs = tweet.comments.select_related("user").all()
+            ser = CommentSerializer(qs, many=True, context={"request": request})
             return Response(ser.data, status=status.HTTP_200_OK)
 
+        # POST: adiciona comentário
         ser = CommentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        c = Comment.objects.create(
+
+        Comment.objects.create(
             user=request.user,
-            tweet=t,
-            text=ser.validated_data["text"]
-        )
-        return Response(
-            CommentSerializer(c).data,
-            status=status.HTTP_201_CREATED
+            tweet=tweet,
+            text=ser.validated_data["text"],
         )
 
+        # Atualiza contagens após comentar
+        tweet.likes_count = tweet.likes.count()
+        tweet.comments_count = tweet.comments.count()
+
+        # Atualiza contagens via annotate
+        tweet = Tweet.objects.annotate(
+            likes_count=Count("likes", distinct=True),
+            comments_count=Count("comments", distinct=True),
+        ).get(id=tweet.id)
+
+        ser_tweet = self.get_serializer(tweet)
+        return Response(ser_tweet.data, status=status.HTTP_201_CREATED)
 
 
 # =============================
 # Usuários (listar, follow/unfollow)
 # =============================
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
-    """Lista e detalhes de usuários. Permite seguir/deixar de seguir e remover a foto de perfil."""
+    """Lista e detalhes de usuários. Permite seguir/deixar de seguir e remover avatar."""
     queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -143,20 +156,22 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def follow(self, request, pk=None):
         """Segue ou deixa de seguir um usuário."""
         target = self.get_object()
-        if request.user == target:
-            return Response({"detail": "Você não pode seguir a si mesmo."}, status=400)
+        user = request.user
+
+        if user == target:
+            return Response({"detail": "Você não pode seguir a si mesmo."}, status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == "POST":
-            Follow.objects.get_or_create(follower=request.user, following=target)
+            Follow.objects.get_or_create(follower=user, following=target)
             status_str = "following"
         else:
-            Follow.objects.filter(follower=request.user, following=target).delete()
+            Follow.objects.filter(follower=user, following=target).delete()
             status_str = "unfollowed"
 
         data = {
             "status": status_str,
-            "following_count": Follow.objects.filter(follower=request.user).count(),
-            "followers_count": Follow.objects.filter(following=request.user).count(),
+            "following_count": Follow.objects.filter(follower=user).count(),
+            "followers_count": Follow.objects.filter(following=user).count(),
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -164,34 +179,32 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     def following(self, request):
         """Lista de quem o usuário autenticado está seguindo."""
         ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
-        qs = User.objects.filter(id__in=list(ids)).order_by("username")
+        qs = User.objects.filter(id__in=ids).order_by("username")
         page = self.paginate_queryset(qs)
-        ser = UserSerializer(page or qs, many=True, context={"request": request})
-        return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
+        serializer = UserSerializer(page or qs, many=True, context={"request": request})
+        return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data)
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def followers(self, request):
         """Lista de quem segue o usuário autenticado."""
         ids = Follow.objects.filter(following=request.user).values_list("follower_id", flat=True)
-        qs = User.objects.filter(id__in=list(ids)).order_by("username")
+        qs = User.objects.filter(id__in=ids).order_by("username")
         page = self.paginate_queryset(qs)
-        ser = UserSerializer(page or qs, many=True, context={"request": request})
-        return self.get_paginated_response(ser.data) if page is not None else Response(ser.data)
+        serializer = UserSerializer(page or qs, many=True, context={"request": request})
+        return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data)
 
     @action(detail=False, methods=["delete"], permission_classes=[permissions.IsAuthenticated])
     def remove_profile_image(self, request):
-        """
-        Remove a imagem de perfil do usuário autenticado.
-        """
+        """Remove o avatar do usuário autenticado."""
         user = request.user
 
-        if not user.profile_image:
-            return Response({"detail": "Nenhuma imagem para remover."}, status=status.HTTP_400_BAD_REQUEST)
+        # Compatível com campo avatar em Profile
+        if hasattr(user, "profile") and user.profile.avatar:
+            user.profile.avatar.delete(save=True)
+            serializer = UserSerializer(user, context={"request": request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-        user.profile_image.delete(save=True)
-
-        serializer = UserSerializer(user, context={"request": request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"detail": "Nenhuma imagem para remover."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
