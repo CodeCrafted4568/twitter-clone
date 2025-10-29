@@ -7,8 +7,14 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
     const [loadingC, setLoadingC] = useState(false);
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
-    const [liked, setLiked] = useState(tweet.liked);
+    const [liked, setLiked] = useState(!!tweet.liked);
     const [likesCount, setLikesCount] = useState(tweet.likes_count ?? 0);
+
+    useEffect(() => {
+        setLiked(!!tweet.liked);
+        setLikesCount(tweet.likes_count ?? 0);
+    }, [tweet.id]);
+
 
     // ============================================================
     // 🔹 Carrega comentários
@@ -59,7 +65,8 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
     // ============================================================
     async function handleLike() {
         const optimisticLiked = !liked;
-        const optimisticCount = likesCount + (optimisticLiked ? 1 : -1);
+        const currentCount = typeof likesCount === "number" ? likesCount : 0;
+        const optimisticCount = currentCount + (optimisticLiked ? 1 : -1);
 
         setLiked(optimisticLiked);
         setLikesCount(optimisticCount);
@@ -67,15 +74,18 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
         try {
             const endpoint = `tweets/${tweet.id}/like/`;
             const method = optimisticLiked ? "post" : "delete";
-            await api[method](endpoint);
+            const { data } = await api[method](endpoint);
 
-            // Atualiza o feed (sem reload global)
-            if (onLikeChange) onLikeChange(tweet.id, optimisticLiked);
+            // sincroniza com backend
+            setLiked(!!data.liked);
+            setLikesCount(data.likes_count ?? 0);
+
+            if (onLikeChange) onLikeChange(tweet.id, data.liked);
         } catch (err) {
             console.error("❌ Erro ao curtir/descurtir:", err);
             // rollback visual se falhar
             setLiked(!optimisticLiked);
-            setLikesCount(likesCount);
+            setLikesCount(currentCount);
         }
     }
 
@@ -177,3 +187,5 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
         </article>
     );
 }
+
+

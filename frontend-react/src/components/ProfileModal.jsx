@@ -178,21 +178,26 @@ export default function ProfileModal({ open, onClose }) {
                     </div>
 
                     <button
+                        type="button"
                         className="btn-remove"
-                        onClick={async () => {
+                        onClick={async (e) => {
+                            e.preventDefault();
                             const confirmDelete = window.confirm("Remover foto de perfil?");
                             if (!confirmDelete) return;
 
                             try {
-                                await api.patch("/api/users/me/", { avatar: "remove" });
-                                onAvatarChange(); // se já existir função de refresh
+                                await api.patch("users/me/", { avatar: null });
+                                setPreview(""); // remover preview local
+                                setAvatar(null);
                             } catch (error) {
                                 console.error("Erro ao remover avatar:", error);
+                                setError("Não foi possível remover a foto.");
                             }
                         }}
                     >
                         Remover foto de perfil
                     </button>
+
 
 
                     <input
