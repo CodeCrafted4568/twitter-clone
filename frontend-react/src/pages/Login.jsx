@@ -15,7 +15,7 @@ export default function Login() {
     e.preventDefault();
     setError("");
     try {
-      const { data } = await api.post("auth/token/", { username, password }); // <- aqui
+      const { data } = await api.post("api/token/", { username, password }); // <- aqui
       localStorage.setItem("token", data.access);
       localStorage.setItem("refresh", data.refresh);
       nav("/home");

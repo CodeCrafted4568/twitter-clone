@@ -16,7 +16,7 @@ const baseURL = normalizeApiBase(import.meta.env.VITE_API_BASE);
 export const API_BASE = baseURL;
 
 const api = axios.create({
-    baseURL,
+    baseURL: import.meta.env.VITE_API_BASE || "http://localhost:8000",
     headers: { Accept: "application/json" },
 });
 
@@ -50,7 +50,7 @@ api.interceptors.response.use(
         try {
             if (!refreshing) {
                 refreshing = api
-                    .post("auth/token/refresh/", { refresh })
+                    .post("api/token/refresh/", { refresh })
                     .then(({ data }) => {
                         const newAccess = data?.access;
                         if (!newAccess) throw new Error("Refresh sem access token");

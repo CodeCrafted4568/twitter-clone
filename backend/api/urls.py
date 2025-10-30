@@ -20,8 +20,8 @@ urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
 
     # JWT Auth
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
     # Usuário logado e relacionamentos
     path("users/me/", CurrentUserView.as_view(), name="current-user"),
