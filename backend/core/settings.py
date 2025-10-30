@@ -116,8 +116,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",    # Desenvolvimento local
-    "https://twitter-frontend.vercel.app",  # Vercel frontend
+    "http://localhost:5173",  # Desenvolvimento local
+    "https://twitter-clone-git-6f277b-tiago-silva-batista-dos-santos-projects.vercel.app",
+    "https://twitter-clone-tiago-silva-batista-dos-santos-projects.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
