@@ -119,7 +119,32 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://twitter-backendd.onrender.com",
     "https://twitter-clone-qi0v4tibn-tiago-silva-batista-dos-santos-projects.vercel.app",
+    "https://twitter-clone-35ryy0713-tiago-silva-batista-dos-santos-projects.vercel.app",
 ]
+
+# Permitir todos os métodos comuns
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+# Permitir cabeçalhos usados nas requisições do frontend
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.vercel.app",
