@@ -118,10 +118,9 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://twitter-backendd.onrender.com",
-    "https://twitter-clone-tiago-silva-batista-dos-santos-projects.vercel.app",
-    "https://twitter-clone-git-6f277b-tiago-silva-batista-dos-santos-projects.vercel.app",
-    "https://twitter-clone-3dn9qbbbsb-tiago-silva-batista-dos-santos-projects.vercel.app",
+    "https://twitter-clone-qi0v4tibn-tiago-silva-batista-dos-santos-projects.vercel.app",
 ]
+
 CSRF_TRUSTED_ORIGINS = [
     "https://*.vercel.app",
     "https://twitter-backendd.onrender.com",
