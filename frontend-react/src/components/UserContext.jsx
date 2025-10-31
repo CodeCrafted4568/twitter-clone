@@ -10,7 +10,7 @@ export function UserProvider({ children }) {
 
     const refreshUser = useCallback(async () => {
         try {
-            const meRes = await api.get("users/me/");
+            const meRes = await api.get("api/users/me/");
             const fresh = {
                 ...meRes.data,
                 avatar_url: meRes.data.avatar_url

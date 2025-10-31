@@ -16,8 +16,8 @@ export default function Home() {
     try {
       setLoading(true);
       const [{ data: meData }, { data: feedData }] = await Promise.all([
-        api.get("users/me/"),
-        api.get("feed/"),
+        api.get("api/users/me/"),
+        api.get("api/feed/"),
       ]);
       setMe(meData);
       setTweets(feedData.results ?? feedData ?? []);
@@ -39,7 +39,7 @@ export default function Home() {
     const body = (text || "").trim();
     if (!body) return;
     try {
-      const { data } = await api.post("tweets/", { text: body });
+      const { data } = await api.post("api/tweets/", { text: body });
       setTweets((prev) => [data, ...prev]);
     } catch (err) {
       console.error("❌ Erro ao postar tweet:", err);
