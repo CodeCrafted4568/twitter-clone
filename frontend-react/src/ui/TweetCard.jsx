@@ -22,7 +22,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
     async function loadComments() {
         try {
             setLoadingC(true);
-            const { data } = await api.get(`tweets/${tweet.id}/comments/`);
+            const { data } = await api.get(`api/tweets/${tweet.id}/comments/`);
             setComments(data.results ?? data ?? []);
         } catch (err) {
             console.error("❌ Erro ao carregar comentários:", err);
