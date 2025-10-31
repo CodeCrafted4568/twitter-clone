@@ -45,7 +45,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
 
         try {
             setSending(true);
-            const { data } = await api.post(`tweets/${tweet.id}/comments/`, {
+            const { data } = await api.post(`api/tweets/${tweet.id}/comments/`, {
                 text: payload,
             });
             setComments((c) => [...c, data]);
@@ -72,7 +72,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
         setLikesCount(optimisticCount);
 
         try {
-            const endpoint = `tweets/${tweet.id}/like/`;
+            const endpoint = `api/tweets/${tweet.id}/like/`;
             const method = optimisticLiked ? "post" : "delete";
             const { data } = await api[method](endpoint);
 
