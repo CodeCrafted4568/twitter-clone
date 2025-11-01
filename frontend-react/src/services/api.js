@@ -16,7 +16,7 @@ const baseURL = normalizeApiBase(import.meta.env.VITE_API_BASE);
 export const API_BASE = baseURL;
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE || "http://localhost:8000",
+    baseURL: import.meta.env.VITE_API_BASE || "/api",
     headers: { Accept: "application/json" },
 });
 
