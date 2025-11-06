@@ -9,6 +9,15 @@ export function UserProvider({ children }) {
     const [following, setFollowing] = useState([]);
 
     const refreshUser = useCallback(async () => {
+        // Verifica se existe token antes de tentar buscar /users/me/
+        const token = localStorage.getItem("token");
+        if (!token) {
+            setMe(null);
+            setFollowers([]);
+            setFollowing([]);
+            return;
+        }
+
         try {
             const meRes = await api.get("api/users/me/");
             const fresh = {
