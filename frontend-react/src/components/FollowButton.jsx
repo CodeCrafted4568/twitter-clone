@@ -19,7 +19,7 @@ export default function FollowButton({ userId, initialFollowing, onUpdate }) {
         setFollowing(next);
 
         try {
-            const endpoint = `users/${userId}/follow/`;
+            const endpoint = `api/users/${userId}/follow/`;
             const method = next ? "post" : "delete";
             const { data } = await api[method](endpoint);
 
