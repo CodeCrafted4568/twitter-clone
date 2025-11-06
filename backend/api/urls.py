@@ -17,7 +17,7 @@ router.register(r"users", UserViewSet, basename="user")
 
 urlpatterns = [
     # Registro
-    path("register/", RegisterView.as_view(), name="register"),
+    path("api/register/", RegisterView.as_view(), name="register"),
 
     # JWT Auth
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
