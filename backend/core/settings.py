@@ -2,11 +2,12 @@ import locale
 locale.getpreferredencoding = lambda: 'UTF-8'
 
 import os
+import dj_database_url
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'unsafe-secret-key')
+SECRET_KEY = os.getenv('SECRET_KEY', 'unsafe-secret-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']
@@ -78,15 +79,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # =============================
 # Banco de dados
 # =============================
-DATABASES = { 
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'twitter_clone'),
-        'USER': os.getenv('POSTGRES_USER', 'twitter'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'admin123'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-    }
+DATABASES = {
+    "default": dj_database_url.config(default=os.getenv("DATABASE_URL"))
 }
 
 
