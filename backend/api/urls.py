@@ -25,6 +25,7 @@ urlpatterns = [
 
     # Usuário logado e relacionamentos
     path("users/me/", CurrentUserView.as_view(), name="current-user"),
+    path("me/", CurrentUserView.as_view(), name="current-user-alias"),
     path("users/following/", FollowingListView.as_view(), name="user-following"),
     path("users/followers/", FollowersListView.as_view(), name="user-followers"),
 
