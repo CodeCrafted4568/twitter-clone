@@ -21,7 +21,7 @@ class CommentSerializer(serializers.ModelSerializer):
 # =============================
 class TweetSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
-    text = serializers.CharField(source="content", read_only=True)
+    text = serializers.CharField(source="content")
 
     likes_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
@@ -33,11 +33,11 @@ class TweetSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "text",
+            "image",
             "created_at",
             "likes_count",
             "comments_count",
             "liked",
-            
         ]
 
     def get_likes_count(self, obj):
