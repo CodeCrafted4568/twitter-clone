@@ -12,37 +12,33 @@ function normalizeApiBase(raw) {
     return cleaned + "/api/";
 }
 
-const baseURL = normalizeApiBase(import.meta.env.VITE_API_BASE);
+const rawBase = import.meta.env.VITE_API_BASE || "/api";
+const baseURL = normalizeApiBase(rawBase);
 export const API_BASE = baseURL;
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE || "/api",
+    baseURL, // ✅ usa a URL garantida (com /api/ no fim)
     headers: { Accept: "application/json" },
 });
 
-api.interceptors.request.use((cfg) => {
-    const access = localStorage.getItem("token");
-    cfg.headers = cfg.headers ?? {};
-    if (access) cfg.headers.Authorization = `Bearer ${access}`;
-    if (cfg.data instanceof FormData) {
-        delete cfg.headers["Content-Type"];
-    } else {
-        cfg.headers["Content-Type"] = "application/json";
-    }
-    return cfg;
-});
 
+// 🔧 Variável global pra controlar múltiplos refresh simultâneos
 let refreshing = null;
 
+/** Interceptor de request — adiciona token e content-type */
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    const token = localStorage.getItem("token") || localStorage.getItem("access");
+    config.headers = config.headers ?? {};
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+    } else {
+        config.headers["Content-Type"] = "application/json";
     }
     return config;
 });
 
-
+/** Interceptor de resposta — renova token automaticamente */
 api.interceptors.response.use(
     (res) => res,
     async (err) => {
@@ -59,7 +55,7 @@ api.interceptors.response.use(
         try {
             if (!refreshing) {
                 refreshing = api
-                    .post("api/token/refresh/", { refresh })
+                    .post("/token/refresh/", { refresh })
                     .then(({ data }) => {
                         const newAccess = data?.access;
                         if (!newAccess) throw new Error("Refresh sem access token");

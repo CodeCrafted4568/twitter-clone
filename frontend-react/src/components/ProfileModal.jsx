@@ -19,7 +19,7 @@ export default function ProfileModal({ open, onClose }) {
         if (!open) return;
         (async () => {
             try {
-                const { data } = await api.get("api/users/me/");
+                const { data } = await api.get("users/me/");
                 setUsername(data.username || "");
                 setInitialUsername(data.username || "");
                 setPreview(data.avatar_url ? `${data.avatar_url}?t=${Date.now()}` : "");

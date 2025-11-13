@@ -16,8 +16,8 @@ export default function Home() {
     try {
       setLoading(true);
       const [{ data: meData }, { data: feedData }] = await Promise.all([
-        api.get("api/users/me/"),
-        api.get("api/feed/"),
+        api.get("users/me/"),
+        api.get("feed/"),
       ]);
       setMe(meData);
       setTweets(feedData.results ?? feedData ?? []);

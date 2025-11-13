@@ -19,7 +19,7 @@ export function UserProvider({ children }) {
         }
 
         try {
-            const meRes = await api.get("api/users/me/");
+            const meRes = await api.get("users/me/");
             const fresh = {
                 ...meRes.data,
                 avatar_url: meRes.data.avatar_url
@@ -29,8 +29,8 @@ export function UserProvider({ children }) {
             setMe(fresh);
 
             const [a, b] = await Promise.all([
-                api.get("api/users/following/"),
-                api.get("api/users/followers/"),
+                api.get("users/following/"),
+                api.get("users/followers/"),
             ]);
 
             setFollowing(a.data.results ?? a.data ?? []);

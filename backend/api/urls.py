@@ -23,9 +23,11 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
+    # Alias para compatibilidade com frontend
+    path("me/", CurrentUserView.as_view(), name="current-user-alias"),
+
     # Usuário logado e relacionamentos
     path("users/me/", CurrentUserView.as_view(), name="current-user"),
-    path("me/", CurrentUserView.as_view(), name="current-user-alias"),
     path("users/following/", FollowingListView.as_view(), name="user-following"),
     path("users/followers/", FollowersListView.as_view(), name="user-followers"),
 
@@ -35,3 +37,4 @@ urlpatterns = [
     # Endpoints REST padrão (tweets/users)
     path("", include(router.urls)),
 ]
+
