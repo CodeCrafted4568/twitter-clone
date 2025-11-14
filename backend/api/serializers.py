@@ -57,7 +57,7 @@ class TweetSerializer(serializers.ModelSerializer):
 # =============================
 # Usuários
 # =============================
-class UserSerializer(serializers.ModelSerializer):
+class PublicUserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
 
     class Meta:

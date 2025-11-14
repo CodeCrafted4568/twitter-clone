@@ -19,7 +19,7 @@ export default function ProfileSearch() {
             }
             try {
                 setLoading(true);
-                const { data } = await api.get("api/users/", { params: { search: term } });
+                const { data } = await api.get("users/", { params: { search: term } });
                 const results = data.results ?? data ?? [];
 
                 // 🔹 Ajuste principal: cruzar com `following`

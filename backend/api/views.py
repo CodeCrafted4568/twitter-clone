@@ -13,7 +13,8 @@ from .models import Tweet, Like, Comment
 from app.users.models import Follow
 from .serializers import (
     TweetSerializer,
-    UserSerializer,
+    PublicUserSerializer,
+    UserMeSerializer,
     RegisterSerializer,
     CommentSerializer,
 )
@@ -52,7 +53,7 @@ class RegisterView(APIView):
         s = RegisterSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         user = s.save()
-        return Response(UserSerializer(user, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        return Response(PublicUserSerializer(user, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 # =============================
@@ -147,7 +148,7 @@ class TweetViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """Lista e detalhes de usuários. Permite seguir/deixar de seguir e remover avatar."""
     queryset = User.objects.all().order_by("id")
-    serializer_class = UserSerializer
+    serializer_class = PublicUserSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [SearchFilter]
     search_fields = ["username"]
@@ -181,7 +182,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         ids = Follow.objects.filter(follower=request.user).values_list("following_id", flat=True)
         qs = User.objects.filter(id__in=ids).order_by("username")
         page = self.paginate_queryset(qs)
-        serializer = UserSerializer(page or qs, many=True, context={"request": request})
+        serializer = PublicUserSerializer(page or qs, many=True, context={"request": request})
         return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data)
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
@@ -190,7 +191,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         ids = Follow.objects.filter(following=request.user).values_list("follower_id", flat=True)
         qs = User.objects.filter(id__in=ids).order_by("username")
         page = self.paginate_queryset(qs)
-        serializer = UserSerializer(page or qs, many=True, context={"request": request})
+        serializer = PublicUserSerializer(page or qs, many=True, context={"request": request})
         return self.get_paginated_response(serializer.data) if page is not None else Response(serializer.data)
 
     @action(detail=False, methods=["delete"], permission_classes=[permissions.IsAuthenticated])
@@ -201,7 +202,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         # Compatível com campo avatar em Profile
         if hasattr(user, "profile") and user.profile.avatar:
             user.profile.avatar.delete(save=True)
-            serializer = UserSerializer(user, context={"request": request})
+            serializer = PublicUserSerializer(user, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response({"detail": "Nenhuma imagem para remover."}, status=status.HTTP_400_BAD_REQUEST)
@@ -218,7 +219,7 @@ class CurrentUserView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
-        return Response(UserSerializer(request.user, context={"request": request}).data)
+        return Response(UserMeSerializer(request.user, context={"request": request}).data)
 
     def patch(self, request):
         user = request.user
@@ -254,7 +255,7 @@ class CurrentUserView(APIView):
         if changed:
             user.save()
 
-        return Response(UserSerializer(user, context={"request": request}).data, status=status.HTTP_200_OK)
+        return Response(UserMeSerializer(user, context={"request": request}).data, status=status.HTTP_200_OK)
 
 
 # =============================

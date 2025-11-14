@@ -4,7 +4,7 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import UserSerializer
+from .serializers import SimpleUserSerializer
 
 User = get_user_model()
 
@@ -14,7 +14,7 @@ class UserSearchView(generics.ListAPIView):
     Endpoint para buscar usuários pelo nome de usuário.
     Exemplo: /api/users/search/?q=tiago
     """
-    serializer_class = UserSerializer
+    serializer_class = SimpleUserSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
@@ -65,14 +65,3 @@ class FollowView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
-class UserMeView(APIView):
-    """
-    Retorna os dados do usuário autenticado.
-    GET /api/users/me/
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        serializer = UserSerializer(request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)

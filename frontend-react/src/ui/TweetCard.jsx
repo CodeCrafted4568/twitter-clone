@@ -22,7 +22,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
     async function loadComments() {
         try {
             setLoadingC(true);
-            const { data } = await api.get(`api/tweets/${tweet.id}/comments/`);
+            const { data } = await api.get(`tweets/${tweet.id}/comments/`);
             setComments(data.results ?? data ?? []);
         } catch (err) {
             console.error("❌ Erro ao carregar comentários:", err);
@@ -45,7 +45,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
 
         try {
             setSending(true);
-            const { data } = await api.post(`api/tweets/${tweet.id}/comments/`, {
+            const { data } = await api.post(`tweets/${tweet.id}/comments/`, {
                 text: payload,
             });
             setComments((c) => [...c, data]);
@@ -72,7 +72,7 @@ export default function TweetCard({ tweet, onLikeChange, onCommentAdded }) {
         setLikesCount(optimisticCount);
 
         try {
-            const endpoint = `api/tweets/${tweet.id}/like/`;
+            const endpoint = `tweets/${tweet.id}/like/`;
             const method = optimisticLiked ? "post" : "delete";
             const { data } = await api[method](endpoint);
 

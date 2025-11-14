@@ -96,10 +96,15 @@ export default function ProfileModal({ open, onClose }) {
             if (username?.trim() && username.trim() !== initialUsername)
                 fd.append("username", username.trim());
             if (password) fd.append("password", password);
-            if (avatar) fd.append("avatar", avatar);
+            if (avatar) fd.append("profile.avatar", avatar);
 
             // atualização parcial
-            await api.patch("users/me/", fd);
+            await api.patch("users/me/", fd, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
 
             onClose?.();
             // simples e eficiente pra refletir avatar/nome novos
@@ -186,7 +191,7 @@ export default function ProfileModal({ open, onClose }) {
                             if (!confirmDelete) return;
 
                             try {
-                                await api.patch("users/me/", { avatar: null });
+                                await api.patch("users/me/", { profile: { avatar: null } });
                                 setPreview(""); // remover preview local
                                 setAvatar(null);
                             } catch (error) {
