@@ -42,7 +42,11 @@ export function UserProvider({ children }) {
         }
     }, []);
 
-    useEffect(() => { refreshUser(); }, [refreshUser]);
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (token) refreshUser();
+    }, [refreshUser]);
+
 
     return (
         <UserContext.Provider value={{ me, followers, following, refreshUser }}>

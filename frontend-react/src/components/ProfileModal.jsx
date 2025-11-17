@@ -3,8 +3,10 @@ import { createPortal } from "react-dom";
 import api from "../services/api";
 import perfilIcon from "../assets/perfil.png";
 import "../styles/ProfileModal.css";
+import { useUser } from "../components/UserContext";
 
 export default function ProfileModal({ open, onClose }) {
+    const { me, refreshUser } = useUser();
     const [username, setUsername] = useState("");
     const [initialUsername, setInitialUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -16,18 +18,12 @@ export default function ProfileModal({ open, onClose }) {
 
     // carrega dados atuais ao abrir
     useEffect(() => {
-        if (!open) return;
-        (async () => {
-            try {
-                const { data } = await api.get("users/me/");
-                setUsername(data.username || "");
-                setInitialUsername(data.username || "");
-                setPreview(data.avatar_url ? `${data.avatar_url}?t=${Date.now()}` : "");
-            } catch {
-                /* silencioso em dev */
-            }
-        })();
-    }, [open]);
+        if (!open || !me) return;
+
+        setUsername(me.username || "");
+        setInitialUsername(me.username || "");
+        setPreview(me.avatar_url ? `${me.avatar_url}?t=${Date.now()}` : "");
+    }, [open, me]);
 
     // foco inicial + trava scroll
     useEffect(() => {
@@ -105,11 +101,19 @@ export default function ProfileModal({ open, onClose }) {
                 },
             });
 
+            // Atualiza o contexto SEM deixar erro vazar
+            try {
+                await refreshUser();
+            } catch (refreshErr) {
+                console.warn("Falha ao atualizar contexto, mas PATCH funcionou:", refreshErr);
+            }
 
+            // fecha modal
             onClose?.();
-            // simples e eficiente pra refletir avatar/nome novos
-            window.location.reload();
+
+
         } catch (err) {
+            console.log("Erro real:", err);
             const data = err?.response?.data;
             const msg =
                 data?.detail ||
@@ -181,29 +185,6 @@ export default function ProfileModal({ open, onClose }) {
                             </label>
                         </div>
                     </div>
-
-                    <button
-                        type="button"
-                        className="btn-remove"
-                        onClick={async (e) => {
-                            e.preventDefault();
-                            const confirmDelete = window.confirm("Remover foto de perfil?");
-                            if (!confirmDelete) return;
-
-                            try {
-                                await api.patch("users/me/", { profile: { avatar: null } });
-                                setPreview(""); // remover preview local
-                                setAvatar(null);
-                            } catch (error) {
-                                console.error("Erro ao remover avatar:", error);
-                                setError("Não foi possível remover a foto.");
-                            }
-                        }}
-                    >
-                        Remover foto de perfil
-                    </button>
-
-
 
                     <input
                         ref={firstRef}

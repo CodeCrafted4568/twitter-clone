@@ -2,25 +2,22 @@ import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import Feed from "../ui/Feed";
 import RightRail from "../ui/RightRail";
+import { useUser } from "../components/UserContext.jsx";
 import "./home.css";
 
 export default function Home() {
-  const [me, setMe] = useState(null);
+  const { me, refreshUser } = useUser();
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // ============================================================
   // 🔹 Carrega perfil + feed
   // ============================================================
-  const loadAll = useCallback(async () => {
+  const loadFeed = useCallback(async () => {
     try {
       setLoading(true);
-      const [{ data: meData }, { data: feedData }] = await Promise.all([
-        api.get("users/me/"),
-        api.get("feed/"),
-      ]);
-      setMe(meData);
-      setTweets(feedData.results ?? feedData ?? []);
+      const { data } = await api.get("feed/");
+      setTweets(data.results ?? data ?? []);
     } catch (err) {
       console.error("❌ Erro ao carregar feed:", err);
     } finally {
@@ -29,8 +26,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    refreshUser();  // garante que me já está atualizado
+    loadFeed();     // carrega apenas o feed
+  }, [loadFeed, refreshUser]);
 
   // ============================================================
   // 🔹 Postar novo tweet
