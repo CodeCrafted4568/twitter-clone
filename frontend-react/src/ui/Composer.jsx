@@ -27,12 +27,19 @@ export default function Composer({ me, onPost }) {
     return (
         <form className="composer" onSubmit={handleSubmit}>
             <textarea
+                className="composer-textarea"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onInput={(e) => {
+                    // auto-expand até 140px, igual o Twitter
+                    e.target.style.height = "auto";
+                    e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px";
+                }}
                 placeholder="O que está acontecendo?"
-                rows={3}
+                rows={1}
             />
+
+
             <div className="composer-actions">
                 <button
                     type="submit"

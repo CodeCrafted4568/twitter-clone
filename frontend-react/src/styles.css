@@ -429,3 +429,20 @@ body {
 .linklike:hover {
     text-decoration: underline;
 }
+
+
+/* ===== Twitter-like Composer ===== */
+.composer-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    resize: none;
+    overflow-y: auto;
+    color: #fff;
+    font-size: 16px;
+    line-height: 20px;
+    padding: 8px 0;
+    outline: none;
+    transition: height 0.1s ease;
+    max-height: 140px;
+}
