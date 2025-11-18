@@ -37,7 +37,7 @@ export default function Home() {
     const body = (text || "").trim();
     if (!body) return;
     try {
-      const { data } = await api.post("api/tweets/", { text: body });
+      const { data } = await api.post("tweets/", { text: body });
       setTweets((prev) => [data, ...prev]);
     } catch (err) {
       console.error("❌ Erro ao postar tweet:", err);
