@@ -1,31 +1,83 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import api from '../services/api'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../services/api";
+import SignupModal from "../components/SignupModal";
+import { useUser } from "../components/UserContext";
+
 export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const nav = useNavigate()
+  const nav = useNavigate();
+  const { refreshUser } = useUser();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
   async function onSubmit(e) {
-    e.preventDefault(); setError('')
+    e.preventDefault();
+    setError("");
+
     try {
-      const { data } = await api.post('/api/auth/token/', { username, password })
-      localStorage.setItem('token', data.access); nav('/home')
-    } catch { setError('Usuário ou senha inválidos') }
+      const { data } = await api.post("api/token/", { username, password });
+
+      localStorage.setItem("token", data.access);
+      localStorage.setItem("refresh", data.refresh);
+
+      api.defaults.headers.common.Authorization = `Bearer ${data.access}`;
+
+      console.log("Token salvo e header satualizado. Executando refreshUser()...");
+
+      await refreshUser();
+
+      nav("/home");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Usuário ou senha inválidos");
+    }
   }
+
   return (
-    <div style={{ maxWidth: 420, margin: '80px auto', padding: 24 }
-    }>
-      <h2>Entrar </h2>
-      < form onSubmit={onSubmit} >
-        <div style={{ display: 'grid', gap: 12 }}>
-          <input placeholder="Usuário" value={username} onChange={e => setUsername(e.target.value)} />
-          <input type="password" placeholder="Senha" value={password} onChange={e => setPassword(e.target.value)} />
-          <button className="btn btn-primary" > Entrar </button>
-          {error && <p className="muted" style={{ color: '#f00' }}> {error} </p>}
-        </div>
-      </form>
-      < p className="muted" style={{ marginTop: 16 }}> Não tem conta ? <Link to="/register" > Criar < /Link></p >
-    </div>
-  )
+    <>
+      <div style={{ maxWidth: 420, margin: "80px auto", padding: 24 }}>
+        <h2>Entrar</h2>
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
+          <input
+            placeholder="Usuário"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Senha" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button className="btn btn-primary">Entrar</button>
+          {error &&
+            <p className="muted" style={{ color: "#f00" }}>
+              {error}
+            </p>}
+        </form>
+
+        <p className="muted" style={{ marginTop: 16 }}>
+          Não tem conta?{" "}
+          <button
+            type="button"
+            className="linklike"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(true);
+            }}
+          >
+            Criar
+          </button>
+        </p>
+      </div>
+
+      <SignupModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onSuccess={() => nav("/home")}
+      />
+    </>
+  );
 }

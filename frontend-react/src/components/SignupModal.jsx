@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import api from "../services/api"
+import x from "../assets/x.svg"
 
 export default function SignupModal({ open, onClose, onSuccess }) {
     const [username, setUsername] = useState("")
@@ -9,8 +10,23 @@ export default function SignupModal({ open, onClose, onSuccess }) {
     const [error, setError] = useState("")
     const firstFieldRef = useRef(null)
 
-    // foco ao abrir
-    useEffect(() => { if (open) setTimeout(() => firstFieldRef.current?.focus(), 0) }, [open])
+    // Foco ao abrir
+    useEffect(() => {
+        if (open) {
+            setTimeout(() => firstFieldRef.current?.focus(), 0)
+        }
+    }, [open])
+
+    // Resetar inputs ao fechar
+    useEffect(() => {
+        if (!open) {
+            setUsername("")
+            setPassword("")
+            setConfirm("")
+            setError("")
+            setLoading(false)
+        }
+    }, [open])
 
     if (!open) return null
 
@@ -18,61 +34,41 @@ export default function SignupModal({ open, onClose, onSuccess }) {
 
     async function handleSubmit(e) {
         e.preventDefault()
-        setError("")
         if (disabled) return
+        setError("")
         try {
             setLoading(true)
-            // cria usuário
-            await api.post("/api/auth/register/", { username, password })
-            // loga direto
-            const { data } = await api.post("/api/auth/token/", { username, password })
+            await api.post("register/", { username, password })
+            const { data } = await api.post("token/", { username, password })
             localStorage.setItem("token", data.access)
-            onSuccess?.()   // ex.: navega para /home
+            localStorage.setItem("refresh", data.refresh);
+            onSuccess?.()
         } catch (err) {
-            setError("Não foi possível criar a conta. Tente um usuário diferente.")
+            const data = err.response?.data
+            let msg = "Erro ao criar conta."
+            if (data?.detail) msg = data.detail
+            else if (data?.username) msg = data.username[0]
+            else if (data?.password) msg = data.password[0]
+            setError(msg)
         } finally {
             setLoading(false)
         }
     }
 
-    function onBackdrop(e) {
-        // fecha ao clicar fora do card
-        if (e.target.classList.contains("modal-overlay")) onClose?.()
-    }
-
     return (
-        <div className="modal-overlay" onMouseDown={onBackdrop} role="presentation">
-            <div className="modal-card" role="dialog" aria-modal="true" aria-labelledby="signup-title">
-                <button className="modal-close" aria-label="Fechar" onClick={onClose}>×</button>
-
+        <div className="modal-overlay" onMouseDown={(e) => e.target.classList.contains("modal-overlay") && onClose?.()}>
+            <div className="modal-card" role="dialog">
+                <button className="modal-close" onClick={onClose}>×</button>
                 <div className="modal-header">
                     <img src={x} alt="X" className="modal-logo" />
                 </div>
-
-                <h3 id="signup-title" className="modal-title">Criar sua conta</h3>
+                <h3 className="modal-title">Criar sua conta</h3>
 
                 <form onSubmit={handleSubmit} className="modal-form">
-                    <input
-                        ref={firstFieldRef}
-                        placeholder="Usuário"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                    />
-                    <input
-                        type="password"
-                        placeholder="Senha"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                    />
-                    <input
-                        type="password"
-                        placeholder="Confirmar senha"
-                        value={confirm}
-                        onChange={e => setConfirm(e.target.value)}
-                    />
-
+                    <input ref={firstFieldRef} placeholder="Usuário" value={username} onChange={(e) => setUsername(e.target.value)} />
+                    <input type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} />
+                    <input type="password" placeholder="Confirmar senha" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
                     {error && <p className="form-error">{error}</p>}
-
                     <button className={`btn btn-primary modal-submit ${disabled ? "btn-disabled" : ""}`} disabled={disabled}>
                         {loading ? "Enviando..." : "Avançar"}
                     </button>

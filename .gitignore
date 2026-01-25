@@ -1,0 +1,20 @@
+# deps
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# builds
+**/dist/
+**/build/
+
+# env & artefatos
+.env
+.env.*
+*.log
+
+# django
+backend/staticfiles/
+backend/media/
+**/__pycache__/
+*.py[cod]
+*.sqlite3

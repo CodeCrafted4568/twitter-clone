@@ -1,0 +1,70 @@
+/* Avatar maior apenas dentro do modal */
+.modal-card .avatar.lg {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #12161a;
+    border: 1px solid #2a2f36;
+}
+
+/* Linha com avatar + “botão” de arquivo alinhados */
+.upload-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+/* Esconde o input nativo (cada navegador desenha de um jeito) */
+.file-input {
+    display: none !important;
+}
+
+/* Label estilizado vira o “botão” de escolher arquivo */
+.file-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* garante centralização vertical */
+    gap: 10px;
+    min-width: 340px;
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid #2a2f36;
+    border-radius: 12px;
+    background: #0f1317;
+    color: #e8edf2;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background .2s ease, border-color .2s ease, transform .02s ease;
+}
+
+.file-label:hover {
+    background: #12181d;
+    border-color: #39414a;
+}
+
+.file-label:active {
+    transform: translateY(1px);
+}
+
+.file-label-text {
+    font-weight: 600;
+}
+
+.file-sep {
+    opacity: .6;
+}
+
+.file-name {
+    opacity: .85;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
